@@ -1,4 +1,5 @@
 import { getServerSession } from "next-auth";
+import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
@@ -27,12 +28,16 @@ export default async function AppLayout({
       <header className="sticky top-0 z-40 border-b border-white/60 bg-white/70 backdrop-blur">
         <div className="mx-auto flex w-full max-w-6xl flex-col gap-3 px-4 py-3 sm:px-6 sm:py-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4 lg:gap-6">
-            <div className="space-y-1">
-              <p className="text-xs font-mono uppercase tracking-[0.2em] text-muted-foreground">
-                Lost Hills
-              </p>
-              <h1 className="text-xl font-semibold">Artist CRM</h1>
-            </div>
+            <Link href="/artists" className="flex items-center gap-3">
+              <Image
+                src="/losthillsdark.svg"
+                alt="Lost Hills"
+                width={120}
+                height={32}
+                className="h-8 w-auto"
+                priority
+              />
+            </Link>
             <nav className="flex flex-wrap items-center gap-2 text-sm">
               <Link
                 href="/artists"
