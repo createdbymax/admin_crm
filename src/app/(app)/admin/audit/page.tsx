@@ -1,6 +1,5 @@
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
-import type { Prisma } from "@prisma/client";
 
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,7 +14,17 @@ import {
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
-type AuditLogWithUser = Prisma.AuditLogGetPayload<{ include: { user: true } }>;
+type AuditLogWithUser = {
+  id: string;
+  createdAt: Date;
+  action: string;
+  entityType: string | null;
+  entityId: string | null;
+  path: string | null;
+  userEmail: string | null;
+  metadata: unknown;
+  user: { name: string | null; email: string | null } | null;
+};
 
 function formatActor(name?: string | null, email?: string | null) {
   if (name && email) {
