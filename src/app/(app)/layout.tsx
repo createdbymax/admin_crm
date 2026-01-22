@@ -22,18 +22,18 @@ export default async function AppLayout({
   const isAdmin = session.user.isAdmin ?? false;
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen overflow-x-hidden">
       <AuditTracker />
-      <header className="border-b border-white/60 bg-white/70 backdrop-blur">
-        <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-6 py-4">
-          <div className="flex flex-wrap items-center gap-4 sm:gap-6">
+      <header className="sticky top-0 z-40 border-b border-white/60 bg-white/70 backdrop-blur">
+        <div className="mx-auto flex w-full max-w-6xl flex-col gap-3 px-4 py-3 sm:px-6 sm:py-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4 lg:gap-6">
             <div className="space-y-1">
               <p className="text-xs font-mono uppercase tracking-[0.2em] text-muted-foreground">
                 Lost Hills
               </p>
               <h1 className="text-xl font-semibold">Artist CRM</h1>
             </div>
-            <nav className="flex items-center gap-2 text-sm">
+            <nav className="flex flex-wrap items-center gap-2 text-sm">
               <Link
                 href="/artists"
                 className="rounded-full border border-transparent px-3 py-1 text-muted-foreground transition hover:border-white/70 hover:bg-white/70 hover:text-foreground"
@@ -44,14 +44,14 @@ export default async function AppLayout({
                 href="/calendar"
                 className="rounded-full border border-transparent px-3 py-1 text-muted-foreground transition hover:border-white/70 hover:bg-white/70 hover:text-foreground"
               >
-                Release calendar
+                Calendar
               </Link>
               {isAdmin ? (
                 <Link
                   href="/admin/audit"
                   className="rounded-full border border-transparent px-3 py-1 text-muted-foreground transition hover:border-white/70 hover:bg-white/70 hover:text-foreground"
                 >
-                  Audit log
+                  Audit
                 </Link>
               ) : null}
               {isAdmin ? (
@@ -64,14 +64,14 @@ export default async function AppLayout({
               ) : null}
             </nav>
           </div>
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
             <GlobalSearch />
             <UserMenu email={session.user.email ?? ""} />
           </div>
         </div>
       </header>
       <Separator />
-      <main className="mx-auto w-full max-w-6xl px-6 py-10">{children}</main>
+      <main className="mx-auto w-full max-w-6xl overflow-x-hidden px-4 py-6 sm:px-6 sm:py-10">{children}</main>
     </div>
   );
 }

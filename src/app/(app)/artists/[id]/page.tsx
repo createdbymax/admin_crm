@@ -64,11 +64,13 @@ export default async function ArtistDetailPage({ params }: PageProps) {
         spotifyFollowers: artist.spotifyFollowers,
         spotifyPopularity: artist.spotifyPopularity,
         spotifyGenres: artist.spotifyGenres ?? [],
+        spotifyImage: artist.spotifyImage,
         spotifyLatestReleaseName: artist.spotifyLatestReleaseName,
         spotifyLatestReleaseDate: artist.spotifyLatestReleaseDate
           ? artist.spotifyLatestReleaseDate.toISOString()
           : null,
         spotifyLatestReleaseUrl: artist.spotifyLatestReleaseUrl,
+        spotifyLatestReleaseImage: artist.spotifyLatestReleaseImage,
         spotifyLastSyncedAt: artist.spotifyLastSyncedAt
           ? artist.spotifyLastSyncedAt.toISOString()
           : null,

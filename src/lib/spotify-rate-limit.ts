@@ -12,7 +12,7 @@ export async function withSpotifyRateLimit<T>(task: () => Promise<T>) {
   const next = queue.then(async () => {
     const now = Date.now();
     const last = globalForSpotify.spotifyLastRun ?? 0;
-    const wait = Math.max(0, 600 - (now - last));
+    const wait = Math.max(0, 100 - (now - last)); // Reduced from 600ms to 100ms
     if (wait) {
       await sleep(wait);
     }

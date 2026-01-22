@@ -138,25 +138,25 @@ export function GlobalSearch() {
   );
 
   return (
-    <div className="relative" ref={containerRef}>
+    <div className="relative w-full sm:w-auto" ref={containerRef}>
       <form onSubmit={handleSubmit} className="flex items-center gap-2">
         <Input
           type="search"
-          placeholder="Search artists, releases, notes..."
+          placeholder="Search..."
           value={value}
           onChange={(event) => {
             setValue(event.target.value);
             setOpen(true);
           }}
           onFocus={() => setOpen(true)}
-          className="h-9 w-60"
+          className="h-9 w-full sm:w-48 md:w-60"
         />
-        <Button type="submit" size="sm" variant="outline">
+        <Button type="submit" size="sm" variant="outline" className="shrink-0">
           Search
         </Button>
       </form>
       {open ? (
-        <div className="absolute right-0 z-50 mt-2 w-[320px] rounded-2xl border border-white/70 bg-white/95 p-3 shadow-[0_25px_60px_-30px_rgba(15,23,42,0.35)]">
+        <div className="absolute left-0 right-0 z-50 mt-2 w-full rounded-2xl border border-white/70 bg-white/95 p-3 shadow-[0_25px_60px_-30px_rgba(15,23,42,0.35)] sm:left-auto sm:right-0 sm:w-[320px]">
           {value.trim() ? (
             <>
               <p className="text-xs font-mono uppercase tracking-[0.3em] text-muted-foreground">

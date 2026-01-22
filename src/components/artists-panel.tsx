@@ -55,7 +55,7 @@ export function ArtistsPanel({
   }, [selectedArtist, selectedArtistId]);
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
+    <div className="flex flex-col gap-6 lg:grid lg:grid-cols-[1fr_320px]">
       <ArtistTable
         artists={artists}
         totalCount={totalCount}

@@ -55,7 +55,7 @@ export function SyncAllButton() {
       } catch {
         // Ignore polling errors.
       }
-    }, 2000);
+    }, 30000); // 30 seconds - Vercel-friendly polling
     return () => clearInterval(interval);
   }, [job?.id, job?.status]);
 
@@ -75,7 +75,7 @@ export function SyncAllButton() {
       }
     };
     void tick();
-    const interval = setInterval(tick, 4000);
+    const interval = setInterval(tick, 30000); // 30 seconds - dev only
     return () => clearInterval(interval);
   }, [job?.status, job?.id]);
 

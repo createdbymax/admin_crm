@@ -23,6 +23,12 @@ export async function syncArtistById(artistId: string) {
 
   const latestRelease = releases[0] ?? null;
 
+  console.log('Spotify sync data:', {
+    artistImage: spotifyArtist.images?.[0]?.url,
+    releaseImage: latestRelease?.image,
+    releaseName: latestRelease?.name,
+  });
+
   for (const release of releases) {
     await prisma.artistRelease.upsert({
       where: { spotifyReleaseId: release.id },
@@ -55,6 +61,7 @@ export async function syncArtistById(artistId: string) {
       spotifyLatestReleaseDate: latestRelease?.releaseDate ?? null,
       spotifyLatestReleaseUrl: latestRelease?.url ?? null,
       spotifyLatestReleaseType: latestRelease?.type ?? null,
+      spotifyLatestReleaseImage: latestRelease?.image ?? null,
       spotifyLastSyncedAt: new Date(),
       needsSync: false,
     },

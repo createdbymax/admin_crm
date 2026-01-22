@@ -117,9 +117,11 @@ export function ArtistTable({
   const allSelected =
     artists.length > 0 && artists.every((artist) => selectedIds.has(artist.id));
 
+  const artistIds = useMemo(() => artists.map(a => a.id).join(','), [artists]);
+
   useEffect(() => {
     setSelectedIds(new Set());
-  }, [artists]);
+  }, [artistIds]);
 
   const toggleSelectAll = () => {
     setSelectedIds((prev) => {
@@ -221,200 +223,224 @@ export function ArtistTable({
     onSelectArtist(artist);
   };
 
+  const [filtersOpen, setFiltersOpen] = useState(false);
+
   return (
-    <div className="rounded-2xl border border-white/70 bg-white shadow-[0_20px_50px_-25px_rgba(15,23,42,0.25)]">
-      <div className="sticky top-4 z-10 flex flex-wrap items-end justify-between gap-4 border-b border-white/60 bg-white px-6 py-4">
-        <div className="flex flex-wrap items-end gap-3">
-          <div className="space-y-1">
-            <p className="text-xs font-mono uppercase tracking-[0.2em] text-muted-foreground">
-              Search
-            </p>
-            <Input
-              placeholder="Artist, email, Instagram..."
-              value={query}
-              onChange={(event) =>
-                updateParams({ q: event.target.value.trim() })
-              }
-              className="w-56"
-            />
-          </div>
-          <div className="space-y-1">
-            <p className="text-xs font-mono uppercase tracking-[0.2em] text-muted-foreground">
-              Status
-            </p>
-            <select
-              className="w-40 rounded-md border border-input bg-white/80 p-2 text-sm"
-              value={status}
-              onChange={(event) => updateParams({ status: event.target.value })}
-            >
-              <option value="all">All</option>
-              <option value="LEAD">Lead</option>
-              <option value="CONTACTED">Contacted</option>
-              <option value="NEGOTIATING">Negotiating</option>
-              <option value="WON">Won</option>
-              <option value="LOST">Lost</option>
-            </select>
-          </div>
-          <div className="space-y-1">
-            <p className="text-xs font-mono uppercase tracking-[0.2em] text-muted-foreground">
-              Contact
-            </p>
-            <select
-              className="w-44 rounded-md border border-input bg-white/80 p-2 text-sm"
-              value={contact}
-              onChange={(event) =>
-                updateParams({ contact: event.target.value })
-              }
-            >
-              <option value="all">All</option>
-              <option value="any">Any contact</option>
-              <option value="email">Email</option>
-              <option value="instagram">Instagram</option>
-              <option value="links">Other links</option>
-            </select>
-          </div>
-          <div className="space-y-1">
-            <p className="text-xs font-mono uppercase tracking-[0.2em] text-muted-foreground">
-              Owner
-            </p>
-            <select
-              className="w-40 rounded-md border border-input bg-white/80 p-2 text-sm"
-              value={ownerId}
-              onChange={(event) => updateParams({ owner: event.target.value })}
-            >
-              <option value="all">All</option>
-              <option value="unassigned">Unassigned</option>
-              {ownerOptions.map((owner) => (
-                <option key={owner.id} value={owner.id}>
-                  {owner.label}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="space-y-1">
-            <p className="text-xs font-mono uppercase tracking-[0.2em] text-muted-foreground">
-              Tag
-            </p>
-            <select
-              className="w-40 rounded-md border border-input bg-white/80 p-2 text-sm"
-              value={tag}
-              onChange={(event) => updateParams({ tag: event.target.value })}
-            >
-              <option value="all">All</option>
-              {tagOptions.map((option) => (
-                <option key={option.id} value={option.id}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="space-y-1">
-            <p className="text-xs font-mono uppercase tracking-[0.2em] text-muted-foreground">
-              Sort
-            </p>
-            <select
-              className="w-44 rounded-md border border-input bg-white/80 p-2 text-sm"
-              value={sort}
-              onChange={(event) => updateParams({ sort: event.target.value })}
-            >
-              <option value="created-desc">Newest</option>
-              <option value="name-asc">Name (A-Z)</option>
-              <option value="listeners-desc">Monthly listeners</option>
-              <option value="followers-desc">Spotify followers</option>
-              <option value="popularity-desc">Popularity</option>
-              <option value="release-desc">Latest release date</option>
-              <option value="synced-desc">Last synced</option>
-            </select>
-          </div>
-          <Button
-            variant="secondary"
-            onClick={() => {
-              router.push(pathname);
-            }}
-          >
-            Reset
-          </Button>
-        </div>
-        <div className="flex flex-wrap items-center justify-end gap-3">
-          {selectedCount ? (
-            <div className="flex flex-wrap items-center gap-2 rounded-full border border-white/70 bg-white/80 px-3 py-2 text-xs text-muted-foreground">
-              <span>{selectedCount} selected</span>
-              {isAdmin ? (
-                <>
-                  <select
-                    className="rounded-md border border-input bg-white/80 p-1 text-xs"
-                    value={bulkOwnerId}
-                    onChange={(event) => setBulkOwnerId(event.target.value)}
-                  >
-                    <option value="" disabled>
-                      Assign owner
-                    </option>
-                    <option value="__unassigned__">Unassigned</option>
-                    {ownerOptions.map((owner) => (
-                      <option key={owner.id} value={owner.id}>
-                        {owner.label}
-                      </option>
-                    ))}
-                  </select>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() =>
-                      runBulkAction("assign", {
-                        ownerId:
-                          bulkOwnerId === "__unassigned__"
-                            ? null
-                            : bulkOwnerId,
-                      })
-                    }
-                    disabled={bulkLoading || !bulkOwnerId}
-                  >
-                    Apply owner
-                  </Button>
-                  <select
-                    className="rounded-md border border-input bg-white/80 p-1 text-xs"
-                    value={bulkStatus}
-                    onChange={(event) => setBulkStatus(event.target.value)}
-                  >
-                    {statusOptions.map((option) => (
-                      <option key={option} value={option}>
-                        {option}
-                      </option>
-                    ))}
-                  </select>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() =>
-                      runBulkAction("status", { status: bulkStatus })
-                    }
-                    disabled={bulkLoading}
-                  >
-                    Apply status
-                  </Button>
-                </>
-              ) : null}
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => runBulkAction("sync", {})}
-                disabled={bulkLoading}
-              >
-                Sync Spotify
-              </Button>
+    <div className="rounded-2xl border border-white/70 bg-white shadow-[0_20px_50px_-25px_rgba(15,23,42,0.25)] overflow-hidden">
+      <div className="sticky top-16 z-10 border-b border-white/60 bg-white px-4 py-3 sm:top-4 sm:px-6 sm:py-4">
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex-1 min-w-0">
+              <Input
+                placeholder="Search artists..."
+                value={query}
+                onChange={(event) =>
+                  updateParams({ q: event.target.value.trim() })
+                }
+                className="w-full"
+              />
             </div>
-          ) : null}
-          <p className="text-xs text-muted-foreground">
-            Showing {displayCount} of {totalCount}
-          </p>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setFiltersOpen(!filtersOpen)}
+              className="shrink-0"
+            >
+              {filtersOpen ? "Hide" : "Filters"}
+            </Button>
+          </div>
+          
+          {filtersOpen && (
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+              <div className="space-y-1">
+                <p className="text-xs font-mono uppercase tracking-[0.2em] text-muted-foreground">
+                  Status
+                </p>
+                <select
+                  className="w-full rounded-md border border-input bg-white/80 p-2 text-sm"
+                  value={status}
+                  onChange={(event) => updateParams({ status: event.target.value })}
+                >
+                  <option value="all">All</option>
+                  <option value="LEAD">Lead</option>
+                  <option value="CONTACTED">Contacted</option>
+                  <option value="NEGOTIATING">Negotiating</option>
+                  <option value="WON">Won</option>
+                  <option value="LOST">Lost</option>
+                </select>
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs font-mono uppercase tracking-[0.2em] text-muted-foreground">
+                  Contact
+                </p>
+                <select
+                  className="w-full rounded-md border border-input bg-white/80 p-2 text-sm"
+                  value={contact}
+                  onChange={(event) =>
+                    updateParams({ contact: event.target.value })
+                  }
+                >
+                  <option value="all">All</option>
+                  <option value="any">Any contact</option>
+                  <option value="email">Email</option>
+                  <option value="instagram">Instagram</option>
+                  <option value="links">Other links</option>
+                </select>
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs font-mono uppercase tracking-[0.2em] text-muted-foreground">
+                  Owner
+                </p>
+                <select
+                  className="w-full rounded-md border border-input bg-white/80 p-2 text-sm"
+                  value={ownerId}
+                  onChange={(event) => updateParams({ owner: event.target.value })}
+                >
+                  <option value="all">All</option>
+                  <option value="unassigned">Unassigned</option>
+                  {ownerOptions.map((owner) => (
+                    <option key={owner.id} value={owner.id}>
+                      {owner.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs font-mono uppercase tracking-[0.2em] text-muted-foreground">
+                  Tag
+                </p>
+                <select
+                  className="w-full rounded-md border border-input bg-white/80 p-2 text-sm"
+                  value={tag}
+                  onChange={(event) => updateParams({ tag: event.target.value })}
+                >
+                  <option value="all">All</option>
+                  {tagOptions.map((option) => (
+                    <option key={option.id} value={option.id}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs font-mono uppercase tracking-[0.2em] text-muted-foreground">
+                  Sort
+                </p>
+                <select
+                  className="w-full rounded-md border border-input bg-white/80 p-2 text-sm"
+                  value={sort}
+                  onChange={(event) => updateParams({ sort: event.target.value })}
+                >
+                  <option value="created-desc">Newest first</option>
+                  <option value="created-asc">Oldest first</option>
+                  <option value="name-asc">Name (A-Z)</option>
+                  <option value="name-desc">Name (Z-A)</option>
+                  <option value="listeners-desc">Listeners (high)</option>
+                  <option value="listeners-asc">Listeners (low)</option>
+                  <option value="followers-desc">Followers (high)</option>
+                  <option value="followers-asc">Followers (low)</option>
+                  <option value="popularity-desc">Popularity (high)</option>
+                  <option value="popularity-asc">Popularity (low)</option>
+                </select>
+              </div>
+              <div className="flex items-end">
+                <Button
+                  variant="secondary"
+                  onClick={() => {
+                    router.push(pathname);
+                  }}
+                  className="w-full"
+                >
+                  Reset
+                </Button>
+              </div>
+            </div>
+          )}
+
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            {selectedCount ? (
+              <div className="flex flex-wrap items-center gap-2 rounded-full border border-white/70 bg-white/80 px-3 py-2 text-xs text-muted-foreground max-w-full">
+                <span className="shrink-0">{selectedCount} selected</span>
+                {isAdmin ? (
+                  <>
+                    <select
+                      className="rounded-md border border-input bg-white/80 p-1 text-xs min-w-0"
+                      value={bulkOwnerId}
+                      onChange={(event) => setBulkOwnerId(event.target.value)}
+                    >
+                      <option value="" disabled>
+                        Assign owner
+                      </option>
+                      <option value="__unassigned__">Unassigned</option>
+                      {ownerOptions.map((owner) => (
+                        <option key={owner.id} value={owner.id}>
+                          {owner.label}
+                        </option>
+                      ))}
+                    </select>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() =>
+                        runBulkAction("assign", {
+                          ownerId:
+                            bulkOwnerId === "__unassigned__"
+                              ? null
+                              : bulkOwnerId,
+                        })
+                      }
+                      disabled={bulkLoading || !bulkOwnerId}
+                      className="shrink-0"
+                    >
+                      Apply
+                    </Button>
+                    <select
+                      className="rounded-md border border-input bg-white/80 p-1 text-xs min-w-0"
+                      value={bulkStatus}
+                      onChange={(event) => setBulkStatus(event.target.value)}
+                    >
+                      {statusOptions.map((option) => (
+                        <option key={option} value={option}>
+                          {option}
+                        </option>
+                      ))}
+                    </select>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() =>
+                        runBulkAction("status", { status: bulkStatus })
+                      }
+                      disabled={bulkLoading}
+                      className="shrink-0"
+                    >
+                      Apply
+                    </Button>
+                  </>
+                ) : null}
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => runBulkAction("sync", {})}
+                  disabled={bulkLoading}
+                  className="shrink-0"
+                >
+                  Sync
+                </Button>
+              </div>
+            ) : null}
+            <p className="text-xs text-muted-foreground shrink-0">
+              {displayCount} of {totalCount}
+            </p>
+          </div>
         </div>
       </div>
       {bulkMessage ? (
-        <div className="border-b border-white/60 px-6 py-2 text-xs text-muted-foreground">
+        <div className="border-b border-white/60 px-4 py-2 text-xs text-muted-foreground sm:px-6">
           {bulkMessage}
         </div>
       ) : null}
-      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-white/60 px-6 py-3 text-xs text-muted-foreground">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/60 px-4 py-3 text-xs text-muted-foreground sm:px-6">
         <div className="flex items-center gap-2">
           <span>Rows</span>
           <select
@@ -438,8 +464,8 @@ export function ArtistTable({
           >
             Prev
           </Button>
-          <span>
-            Page {currentPage} of {totalPages}
+          <span className="whitespace-nowrap">
+            {currentPage} / {totalPages}
           </span>
           <Button
             variant="outline"
@@ -453,191 +479,193 @@ export function ArtistTable({
           </Button>
         </div>
       </div>
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead className="w-10">
-              <input
-                type="checkbox"
-                aria-label="Select all artists on this page"
-                checked={allSelected}
-                onChange={toggleSelectAll}
-              />
-            </TableHead>
-            <TableHead>Artist</TableHead>
-            <TableHead>Contact</TableHead>
-            <TableHead>Spotify</TableHead>
-            <TableHead>Latest release</TableHead>
-            <TableHead className="text-right">Sync</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {artists.map((artist) => (
-            <TableRow
-              key={artist.id}
-              className={
-                selectedArtistId === artist.id
-                  ? "cursor-pointer bg-slate-50"
-                  : "cursor-pointer"
-              }
-              aria-selected={selectedArtistId === artist.id}
-              onClick={(event) => handleRowClick(event, artist)}
-            >
-              <TableCell>
+      <div className="overflow-x-auto">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-10">
                 <input
                   type="checkbox"
-                  aria-label={`Select ${artist.name}`}
-                  checked={selectedIds.has(artist.id)}
-                  onChange={() => toggleSelectOne(artist.id)}
+                  aria-label="Select all artists on this page"
+                  checked={allSelected}
+                  onChange={toggleSelectAll}
                 />
-              </TableCell>
-              <TableCell>
-                <div className="flex flex-col gap-1">
-                  <Link
-                    className="text-sm font-semibold hover:underline"
-                    href={`/artists/${artist.id}`}
-                  >
-                    {artist.name}
-                  </Link>
-                  <span className="text-[11px] text-muted-foreground">
-                    {artist.spotifyGenres.length
-                      ? artist.spotifyGenres.slice(0, 3).join(", ")
-                      : "Genres pending"}
-                  </span>
-                  <div className="flex flex-wrap gap-2 text-[11px] text-muted-foreground">
-                    <Badge variant="secondary">{artist.status}</Badge>
-                    <span>{artist.ownerName ?? "Unassigned"}</span>
-                  </div>
-                  {artist.tags.length ? (
-                    <div className="flex flex-wrap gap-2 text-[10px] text-muted-foreground">
-                      {artist.tags.map((tagItem) => (
-                        <span
-                          key={tagItem.id}
-                          className="rounded-full border border-white/70 bg-white/80 px-2 py-0.5"
-                        >
-                          {tagItem.name}
-                        </span>
-                      ))}
-                    </div>
-                  ) : null}
-                </div>
-              </TableCell>
-              <TableCell>
-                <div className="flex flex-col gap-1 text-[11px] text-muted-foreground">
-                  {artist.email ? <span>{artist.email}</span> : null}
-                  {artist.instagram ? (
-                    <a
-                      className="text-primary hover:underline"
-                      href={artist.instagram}
-                      target="_blank"
-                      rel="noreferrer"
-                    >
-                      Instagram
-                    </a>
-                  ) : null}
-                  {artist.website ? (
-                    <a
-                      className="text-primary hover:underline"
-                      href={artist.website}
-                      target="_blank"
-                      rel="noreferrer"
-                    >
-                      Website
-                    </a>
-                  ) : null}
-                </div>
-              </TableCell>
-              <TableCell>
-                <div className="flex flex-col gap-2 text-[11px]">
-                  <div className="flex flex-wrap gap-2">
-                    {artist.monthlyListeners !== null ? (
-                      <Badge variant="secondary">
-                        {numberFormatter.format(artist.monthlyListeners)}{" "}
-                        listeners
-                      </Badge>
-                    ) : null}
-                    {artist.spotifyFollowers !== null ? (
-                      <Badge variant="outline">
-                        {numberFormatter.format(artist.spotifyFollowers)}{" "}
-                        followers
-                      </Badge>
-                    ) : null}
-                    {artist.spotifyPopularity !== null ? (
-                      <Badge variant="outline">
-                        Popularity {artist.spotifyPopularity}
-                      </Badge>
-                    ) : null}
-                  </div>
-                  {artist.spotifyUrl ? (
-                    <a
-                      className="text-primary hover:underline"
-                      href={artist.spotifyUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                    >
-                      Open Spotify
-                    </a>
-                  ) : (
-                    <span className="text-muted-foreground">No Spotify link</span>
-                  )}
-                </div>
-              </TableCell>
-              <TableCell>
-                <div className="flex flex-col gap-1 text-[11px]">
-                  {artist.spotifyLatestReleaseName ? (
-                    <>
-                      <span className="font-semibold">
-                        {artist.spotifyLatestReleaseName}
-                      </span>
-                      <span className="text-muted-foreground">
-                        {artist.spotifyLatestReleaseType ?? "Release"} •{" "}
-                        {artist.spotifyLatestReleaseDate
-                          ? new Date(
-                              artist.spotifyLatestReleaseDate,
-                            ).toLocaleDateString("en-US", {
-                              month: "short",
-                              day: "numeric",
-                              year: "numeric",
-                            })
-                          : "Date pending"}
-                      </span>
-                    </>
-                  ) : (
-                    <span className="text-muted-foreground">
-                      Sync to fetch latest release
-                    </span>
-                  )}
-                  {artist.spotifyLatestReleaseUrl ? (
-                    <a
-                      className="text-primary hover:underline"
-                      href={artist.spotifyLatestReleaseUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                    >
-                      View release
-                    </a>
-                  ) : null}
-                </div>
-              </TableCell>
-              <TableCell className="text-right">
-                <div className="flex items-center justify-end gap-2">
-                  <Button size="sm" variant="secondary" asChild>
-                    <Link href={`/artists/${artist.id}`}>View</Link>
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleRefresh(artist.id)}
-                    disabled={refreshingId === artist.id}
-                  >
-                    {refreshingId === artist.id ? "Syncing..." : "Sync"}
-                  </Button>
-                </div>
-              </TableCell>
+              </TableHead>
+              <TableHead className="min-w-[200px]">Artist</TableHead>
+              <TableHead className="min-w-[150px]">Contact</TableHead>
+              <TableHead className="min-w-[180px]">Spotify</TableHead>
+              <TableHead className="min-w-[180px]">Latest release</TableHead>
+              <TableHead className="min-w-[140px] text-right">Actions</TableHead>
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+          </TableHeader>
+          <TableBody>
+            {artists.map((artist) => (
+              <TableRow
+                key={artist.id}
+                className={
+                  selectedArtistId === artist.id
+                    ? "cursor-pointer bg-slate-50"
+                    : "cursor-pointer"
+                }
+                aria-selected={selectedArtistId === artist.id}
+                onClick={(event) => handleRowClick(event, artist)}
+              >
+                <TableCell>
+                  <input
+                    type="checkbox"
+                    aria-label={`Select ${artist.name}`}
+                    checked={selectedIds.has(artist.id)}
+                    onChange={() => toggleSelectOne(artist.id)}
+                  />
+                </TableCell>
+                <TableCell>
+                  <div className="flex flex-col gap-1">
+                    <Link
+                      className="text-sm font-semibold hover:underline"
+                      href={`/artists/${artist.id}`}
+                    >
+                      {artist.name}
+                    </Link>
+                    <span className="text-[11px] text-muted-foreground">
+                      {artist.spotifyGenres.length
+                        ? artist.spotifyGenres.slice(0, 3).join(", ")
+                        : "Genres pending"}
+                    </span>
+                    <div className="flex flex-wrap gap-2 text-[11px] text-muted-foreground">
+                      <Badge variant="secondary">{artist.status}</Badge>
+                      <span>{artist.ownerName ?? "Unassigned"}</span>
+                    </div>
+                    {artist.tags.length ? (
+                      <div className="flex flex-wrap gap-2 text-[10px] text-muted-foreground">
+                        {artist.tags.map((tagItem) => (
+                          <span
+                            key={tagItem.id}
+                            className="rounded-full border border-white/70 bg-white/80 px-2 py-0.5"
+                          >
+                            {tagItem.name}
+                          </span>
+                        ))}
+                      </div>
+                    ) : null}
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <div className="flex flex-col gap-1 text-[11px] text-muted-foreground">
+                    {artist.email ? <span className="truncate">{artist.email}</span> : null}
+                    {artist.instagram ? (
+                      <a
+                        className="text-primary hover:underline"
+                        href={artist.instagram}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        Instagram
+                      </a>
+                    ) : null}
+                    {artist.website ? (
+                      <a
+                        className="text-primary hover:underline"
+                        href={artist.website}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        Website
+                      </a>
+                    ) : null}
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <div className="flex flex-col gap-2 text-[11px]">
+                    <div className="flex flex-wrap gap-2">
+                      {artist.monthlyListeners !== null ? (
+                        <Badge variant="secondary">
+                          {numberFormatter.format(artist.monthlyListeners)}{" "}
+                          listeners
+                        </Badge>
+                      ) : null}
+                      {artist.spotifyFollowers !== null ? (
+                        <Badge variant="outline">
+                          {numberFormatter.format(artist.spotifyFollowers)}{" "}
+                          followers
+                        </Badge>
+                      ) : null}
+                      {artist.spotifyPopularity !== null ? (
+                        <Badge variant="outline">
+                          Pop {artist.spotifyPopularity}
+                        </Badge>
+                      ) : null}
+                    </div>
+                    {artist.spotifyUrl ? (
+                      <a
+                        className="text-primary hover:underline"
+                        href={artist.spotifyUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        Open Spotify
+                      </a>
+                    ) : (
+                      <span className="text-muted-foreground">No Spotify link</span>
+                    )}
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <div className="flex flex-col gap-1 text-[11px]">
+                    {artist.spotifyLatestReleaseName ? (
+                      <>
+                        <span className="font-semibold">
+                          {artist.spotifyLatestReleaseName}
+                        </span>
+                        <span className="text-muted-foreground">
+                          {artist.spotifyLatestReleaseType ?? "Release"} •{" "}
+                          {artist.spotifyLatestReleaseDate
+                            ? new Date(
+                                artist.spotifyLatestReleaseDate,
+                              ).toLocaleDateString("en-US", {
+                                month: "short",
+                                day: "numeric",
+                                year: "numeric",
+                              })
+                            : "Date pending"}
+                        </span>
+                      </>
+                    ) : (
+                      <span className="text-muted-foreground">
+                        Sync to fetch latest release
+                      </span>
+                    )}
+                    {artist.spotifyLatestReleaseUrl ? (
+                      <a
+                        className="text-primary hover:underline"
+                        href={artist.spotifyLatestReleaseUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        View release
+                      </a>
+                    ) : null}
+                  </div>
+                </TableCell>
+                <TableCell className="text-right">
+                  <div className="flex items-center justify-end gap-2">
+                    <Button size="sm" variant="secondary" asChild>
+                      <Link href={`/artists/${artist.id}`}>View</Link>
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleRefresh(artist.id)}
+                      disabled={refreshingId === artist.id}
+                    >
+                      {refreshingId === artist.id ? "..." : "Sync"}
+                    </Button>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
     </div>
   );
 }

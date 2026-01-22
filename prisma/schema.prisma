@@ -87,6 +87,7 @@ model Artist {
   spotifyLatestReleaseDate DateTime?
   spotifyLatestReleaseUrl  String?
   spotifyLatestReleaseType String?
+  spotifyLatestReleaseImage String?
   spotifyLastSyncedAt      DateTime?
   needsSync                Boolean @default(true)
   campaignNotes            String?

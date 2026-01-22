@@ -25,9 +25,11 @@ type ArtistDetailProps = {
     spotifyFollowers: number | null;
     spotifyPopularity: number | null;
     spotifyGenres: string[];
+    spotifyImage: string | null;
     spotifyLatestReleaseName: string | null;
     spotifyLatestReleaseDate: string | null;
     spotifyLatestReleaseUrl: string | null;
+    spotifyLatestReleaseImage: string | null;
     spotifyLastSyncedAt: string | null;
     monthlyListeners: number | null;
     email: string | null;
@@ -184,20 +186,34 @@ export function ArtistDetail({
   }, [ownerId, users]);
 
   useEffect(() => {
-    if (!shouldAutoSync || syncing) {
+    if (!shouldAutoSync) {
       return;
     }
 
+    let cancelled = false;
     setSyncing(true);
+    
     fetch("/api/spotify/refresh", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ artistId: artist.id }),
     })
-      .then(() => router.refresh())
+      .then(() => {
+        if (!cancelled) {
+          router.refresh();
+        }
+      })
       .catch(() => {})
-      .finally(() => setSyncing(false));
-  }, [artist.id, router, shouldAutoSync, syncing]);
+      .finally(() => {
+        if (!cancelled) {
+          setSyncing(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [artist.id, router, shouldAutoSync]);
 
   useEffect(() => {
     if (status === "WON") {
@@ -383,14 +399,41 @@ export function ArtistDetail({
   };
 
   const handleSync = async () => {
+    console.log('=== SYNC BUTTON CLICKED ===');
+    console.log('Artist ID:', artist.id);
+    
     setSyncing(true);
-    await fetch("/api/spotify/refresh", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ artistId: artist.id }),
-    });
-    setSyncing(false);
-    router.refresh();
+    
+    try {
+      // Use absolute URL to work around Turbopack routing bug
+      const url = `${window.location.origin}/api/spotify/refresh`;
+      const payload = { artistId: artist.id };
+      
+      console.log('Making fetch request to:', url);
+      console.log('Payload:', payload);
+      
+      const response = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      
+      console.log('Response status:', response.status);
+      
+      const data = await response.json();
+      console.log('Response data:', data);
+      
+      if (!response.ok) {
+        throw new Error(data.error ?? "Sync failed");
+      }
+      
+      router.refresh();
+    } catch (error) {
+      console.error("Sync error:", error);
+      alert(error instanceof Error ? error.message : "Sync failed");
+    } finally {
+      setSyncing(false);
+    }
   };
 
   const handleDelete = async () => {
@@ -461,30 +504,74 @@ export function ArtistDetail({
                   </Badge>
                 ) : null}
               </div>
-              <div className="text-sm text-muted-foreground">
-                {artist.spotifyLatestReleaseName ? (
-                  <>
-                    Latest:{" "}
-                    <a
-                      className="font-semibold text-primary hover:underline"
-                      href={artist.spotifyLatestReleaseUrl ?? "#"}
-                      target="_blank"
-                      rel="noreferrer"
-                    >
-                      {artist.spotifyLatestReleaseName}
-                    </a>
-                    {artist.spotifyLatestReleaseDate
-                      ? ` • ${new Date(
-                          artist.spotifyLatestReleaseDate,
-                        ).toLocaleDateString("en-US")}`
-                      : null}
-                  </>
-                ) : (
-                  "Sync Spotify to pull releases."
-                )}
-              </div>
+              {artist.spotifyLatestReleaseName ? (
+                <div className="rounded-lg border border-white/70 bg-white/80 p-4">
+                  <p className="text-xs font-mono uppercase tracking-wider text-muted-foreground mb-3">
+                    Latest Release
+                  </p>
+                  <div className="flex gap-4">
+                    {artist.spotifyLatestReleaseImage ? (
+                      <img
+                        src={artist.spotifyLatestReleaseImage}
+                        alt={artist.spotifyLatestReleaseName}
+                        className="h-24 w-24 rounded-lg object-cover shadow-md shrink-0"
+                      />
+                    ) : null}
+                    <div className="flex-1 min-w-0 space-y-2">
+                      <a
+                        className="text-base font-semibold text-primary hover:underline block truncate"
+                        href={artist.spotifyLatestReleaseUrl ?? "#"}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        {artist.spotifyLatestReleaseName}
+                      </a>
+                      <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+                        {artist.spotifyLatestReleaseDate ? (
+                          <span>
+                            {new Date(
+                              artist.spotifyLatestReleaseDate,
+                            ).toLocaleDateString("en-US", {
+                              month: "long",
+                              day: "numeric",
+                              year: "numeric",
+                            })}
+                          </span>
+                        ) : null}
+                      </div>
+                      {artist.spotifyLatestReleaseUrl ? (
+                        <a
+                          className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+                          href={artist.spotifyLatestReleaseUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/>
+                          </svg>
+                          Listen on Spotify
+                        </a>
+                      ) : null}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="rounded-lg border border-dashed border-white/70 bg-white/50 p-4 text-sm text-muted-foreground">
+                  Sync Spotify to pull latest release info.
+                </div>
+              )}
               <Separator />
               <div className="grid gap-3 text-sm">
+                {artist.spotifyUrl ? (
+                  <a
+                    className="text-primary hover:underline"
+                    href={artist.spotifyUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    Artist on Spotify
+                  </a>
+                ) : null}
                 {artist.email ? <div>Email: {artist.email}</div> : null}
                 {artist.instagram ? (
                   <a
@@ -507,9 +594,16 @@ export function ArtistDetail({
                   </a>
                 ) : null}
               </div>
-              <Button onClick={handleSync} disabled={syncing}>
-                {syncing ? "Syncing..." : "Sync Spotify"}
-              </Button>
+              <div className="flex items-center gap-3">
+                <Button onClick={handleSync} disabled={syncing}>
+                  {syncing ? "Syncing..." : "Sync Spotify"}
+                </Button>
+                {syncing && (
+                  <span className="text-xs text-muted-foreground animate-pulse">
+                    This may take 30-60 seconds...
+                  </span>
+                )}
+              </div>
             </CardContent>
           </Card>
 

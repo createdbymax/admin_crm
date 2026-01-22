@@ -19,6 +19,7 @@ type SpotifyAlbum = {
   release_date_precision: "year" | "month" | "day";
   external_urls: { spotify: string };
   album_type: string;
+  images: Array<{ url: string; height: number; width: number }>;
 };
 
 function sleep(ms: number) {
@@ -197,5 +198,6 @@ export async function fetchArtistReleases(spotifyId: string) {
     ),
     url: release.external_urls.spotify,
     type: release.album_type,
+    image: release.images?.[0]?.url ?? null,
   }));
 }

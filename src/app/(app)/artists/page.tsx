@@ -2,7 +2,6 @@ import { getServerSession } from "next-auth";
 
 import { ArtistsPanel } from "@/components/artists-panel";
 import { type ArtistRow } from "@/components/artist-table";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
@@ -137,12 +136,15 @@ export default async function ArtistsPage({ searchParams }: ArtistsPageProps) {
 
   const orderByMap: Record<string, ArtistOrderBy> = {
     "created-desc": [{ createdAt: "desc" }],
+    "created-asc": [{ createdAt: "asc" }],
     "name-asc": [{ name: "asc" }],
+    "name-desc": [{ name: "desc" }],
     "listeners-desc": [{ monthlyListeners: "desc" }, { createdAt: "desc" }],
+    "listeners-asc": [{ monthlyListeners: "asc" }, { createdAt: "desc" }],
     "followers-desc": [{ spotifyFollowers: "desc" }, { createdAt: "desc" }],
+    "followers-asc": [{ spotifyFollowers: "asc" }, { createdAt: "desc" }],
     "popularity-desc": [{ spotifyPopularity: "desc" }, { createdAt: "desc" }],
-    "release-desc": [{ spotifyLatestReleaseDate: "desc" }, { createdAt: "desc" }],
-    "synced-desc": [{ spotifyLastSyncedAt: "desc" }, { createdAt: "desc" }],
+    "popularity-asc": [{ spotifyPopularity: "asc" }, { createdAt: "desc" }],
   };
 
   const sessionPromise = getServerSession(authOptions);
@@ -224,66 +226,42 @@ export default async function ArtistsPage({ searchParams }: ArtistsPageProps) {
   const isAdmin = session?.user?.isAdmin ?? false;
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 sm:space-y-8">
       <div>
         <p className="text-xs font-mono uppercase tracking-[0.3em] text-muted-foreground">
           Artists
         </p>
-        <h2 className="text-3xl font-semibold">Campaign targets</h2>
+        <h2 className="text-2xl font-semibold sm:text-3xl">Campaign targets</h2>
         <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
           Import your scraped CSV, enrich each artist with Spotify data, and
           keep outreach details in one place.
         </p>
       </div>
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader>
-            <CardTitle>Total artists</CardTitle>
-          </CardHeader>
-          <CardContent className="text-3xl font-semibold">
-            {totalCount}
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>Leads</CardTitle>
-          </CardHeader>
-          <CardContent className="text-3xl font-semibold">
-            {statusCounts.LEAD ?? 0}
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>Contacted</CardTitle>
-          </CardHeader>
-          <CardContent className="text-3xl font-semibold">
-            {statusCounts.CONTACTED ?? 0}
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>Needs Spotify sync</CardTitle>
-          </CardHeader>
-          <CardContent className="text-3xl font-semibold">
-            {needsSyncCount}
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>Next steps (7d)</CardTitle>
-          </CardHeader>
-          <CardContent className="text-3xl font-semibold">
-            {upcomingNextSteps}
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>Reminders (7d)</CardTitle>
-          </CardHeader>
-          <CardContent className="text-3xl font-semibold">
-            {upcomingReminders}
-          </CardContent>
-        </Card>
+      <div className="flex flex-wrap gap-3 text-xs">
+        <div className="rounded-lg border border-white/70 bg-white/80 px-3 py-2">
+          <p className="font-mono uppercase tracking-wider text-muted-foreground">Total</p>
+          <p className="text-lg font-semibold">{totalCount}</p>
+        </div>
+        <div className="rounded-lg border border-white/70 bg-white/80 px-3 py-2">
+          <p className="font-mono uppercase tracking-wider text-muted-foreground">Leads</p>
+          <p className="text-lg font-semibold">{statusCounts.LEAD ?? 0}</p>
+        </div>
+        <div className="rounded-lg border border-white/70 bg-white/80 px-3 py-2">
+          <p className="font-mono uppercase tracking-wider text-muted-foreground">Contacted</p>
+          <p className="text-lg font-semibold">{statusCounts.CONTACTED ?? 0}</p>
+        </div>
+        <div className="rounded-lg border border-white/70 bg-white/80 px-3 py-2">
+          <p className="font-mono uppercase tracking-wider text-muted-foreground">Needs sync</p>
+          <p className="text-lg font-semibold">{needsSyncCount}</p>
+        </div>
+        <div className="rounded-lg border border-white/70 bg-white/80 px-3 py-2">
+          <p className="font-mono uppercase tracking-wider text-muted-foreground">Next 7d</p>
+          <p className="text-lg font-semibold">{upcomingNextSteps}</p>
+        </div>
+        <div className="rounded-lg border border-white/70 bg-white/80 px-3 py-2">
+          <p className="font-mono uppercase tracking-wider text-muted-foreground">Reminders</p>
+          <p className="text-lg font-semibold">{upcomingReminders}</p>
+        </div>
       </div>
       <ArtistsPanel
         artists={rows}

@@ -19,7 +19,8 @@ export function UserMenu({ email }: UserMenuProps) {
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="secondary" className="font-mono text-xs uppercase">
-          {email}
+          <span className="hidden sm:inline">{email}</span>
+          <span className="sm:hidden">{email.split('@')[0]}</span>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
