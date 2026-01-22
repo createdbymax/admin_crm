@@ -1,7 +1,21 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+
+export const metadata: Metadata = {
+  title: "Finding Contacts - Lost Hills CRM",
+  robots: {
+    index: false,
+    follow: false,
+    nocache: true,
+    googleBot: {
+      index: false,
+      follow: false,
+    },
+  },
+};
 
 export default function FindingContactsPage() {
   return (

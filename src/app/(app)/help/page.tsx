@@ -1,9 +1,23 @@
 import { getServerSession } from "next-auth";
 import Link from "next/link";
+import type { Metadata } from "next";
 
 import { authOptions } from "@/lib/auth";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+
+export const metadata: Metadata = {
+  title: "Help & Best Practices - Lost Hills CRM",
+  robots: {
+    index: false,
+    follow: false,
+    nocache: true,
+    googleBot: {
+      index: false,
+      follow: false,
+    },
+  },
+};
 
 export default async function HelpPage() {
   const session = await getServerSession(authOptions);
