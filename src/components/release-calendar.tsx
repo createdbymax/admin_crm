@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 
 import { Badge } from "@/components/ui/badge";
@@ -10,7 +12,7 @@ export type ReleaseEntry = {
   artistName: string;
   releaseName: string | null;
   releaseType: string | null;
-  releaseDate: Date;
+  releaseDate: string;
   releaseUrl: string | null;
 };
 
@@ -20,6 +22,7 @@ type ReleaseCalendarProps = {
   prevMonth: string;
   nextMonth: string;
   selectedDay?: string | null;
+  onSelectDay?: (day: string) => void;
 };
 
 const weekdays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -37,12 +40,18 @@ function formatMonthParam(date: Date) {
   return `${year}-${month}`;
 }
 
+function parseDateParam(dayParam: string) {
+  const [year, month, day] = dayParam.split("-").map(Number);
+  return new Date(Date.UTC(year, month - 1, day));
+}
+
 export function ReleaseCalendar({
   monthDate,
   releases,
   prevMonth,
   nextMonth,
   selectedDay,
+  onSelectDay,
 }: ReleaseCalendarProps) {
   const year = monthDate.getUTCFullYear();
   const monthIndex = monthDate.getUTCMonth();
@@ -58,7 +67,7 @@ export function ReleaseCalendar({
 
   const releasesByDay = releases.reduce<Record<string, ReleaseEntry[]>>(
     (acc, release) => {
-      const key = formatISODateUTC(release.releaseDate);
+      const key = formatISODateUTC(parseDateParam(release.releaseDate));
       if (!acc[key]) {
         acc[key] = [];
       }
@@ -126,13 +135,22 @@ export function ReleaseCalendar({
               )}
             >
               {inMonth && cellKey ? (
-                <Link
-                  href={`/calendar?month=${formatMonthParam(
-                    monthDate,
-                  )}&day=${cellKey}`}
-                  aria-label={`View releases for ${cellKey}`}
-                  className="absolute inset-0 z-0"
-                />
+                onSelectDay ? (
+                  <button
+                    type="button"
+                    onClick={() => onSelectDay(cellKey)}
+                    aria-label={`View releases for ${cellKey}`}
+                    className="absolute inset-0 z-0 cursor-pointer rounded-2xl bg-transparent"
+                  />
+                ) : (
+                  <Link
+                    href={`/calendar?month=${formatMonthParam(
+                      monthDate,
+                    )}&day=${cellKey}`}
+                    aria-label={`View releases for ${cellKey}`}
+                    className="absolute inset-0 z-0"
+                  />
+                )
               ) : null}
               <div className="relative z-10">
                 <div className="flex items-center justify-between gap-2">

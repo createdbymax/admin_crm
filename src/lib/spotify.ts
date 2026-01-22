@@ -1,3 +1,10 @@
+import { withSpotifyRateLimit } from "@/lib/spotify-rate-limit";
+
+type SpotifyTokenResponse = {
+  access_token: string;
+  expires_in?: number;
+};
+
 type SpotifyArtistResponse = {
   followers: { total: number };
   popularity: number;
@@ -14,6 +21,10 @@ type SpotifyAlbum = {
   album_type: string;
 };
 
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 function parseSpotifyDate(
   releaseDate: string,
   precision: SpotifyAlbum["release_date_precision"],
@@ -27,7 +38,38 @@ function parseSpotifyDate(
   return new Date(releaseDate);
 }
 
+async function spotifyFetch(
+  input: RequestInfo | URL,
+  init: RequestInit,
+  retries = 3,
+) {
+  for (let attempt = 0; attempt <= retries; attempt += 1) {
+    const response = await withSpotifyRateLimit(() => fetch(input, init));
+    if (response.status !== 429) {
+      return response;
+    }
+    const retryAfter = Number(response.headers.get("Retry-After"));
+    if (attempt >= retries) {
+      return response;
+    }
+    const waitMs = Number.isFinite(retryAfter) ? retryAfter * 1000 : 1000;
+    await sleep(waitMs);
+  }
+  throw new Error("Spotify rate limit exceeded.");
+}
+
+const globalForSpotify = globalThis as unknown as {
+  spotifyAccessToken?: string;
+  spotifyAccessTokenExpiresAt?: number;
+};
+
 async function getSpotifyAccessToken() {
+  const cachedToken = globalForSpotify.spotifyAccessToken;
+  const cachedExpiry = globalForSpotify.spotifyAccessTokenExpiresAt ?? 0;
+  if (cachedToken && Date.now() < cachedExpiry - 30_000) {
+    return cachedToken;
+  }
+
   const clientId = process.env.SPOTIFY_CLIENT_ID;
   const clientSecret = process.env.SPOTIFY_CLIENT_SECRET;
 
@@ -53,13 +95,16 @@ async function getSpotifyAccessToken() {
     throw new Error("Failed to fetch Spotify access token.");
   }
 
-  const data = (await response.json()) as { access_token: string };
+  const data = (await response.json()) as SpotifyTokenResponse;
+  globalForSpotify.spotifyAccessToken = data.access_token;
+  const expiresInMs = (data.expires_in ?? 3600) * 1000;
+  globalForSpotify.spotifyAccessTokenExpiresAt = Date.now() + expiresInMs;
   return data.access_token;
 }
 
 export async function fetchSpotifyArtist(spotifyId: string) {
-  const token = await getSpotifyAccessToken();
-  const response = await fetch(
+  let token = await getSpotifyAccessToken();
+  let response = await spotifyFetch(
     `https://api.spotify.com/v1/artists/${spotifyId}`,
     {
       headers: {
@@ -68,6 +113,21 @@ export async function fetchSpotifyArtist(spotifyId: string) {
       cache: "no-store",
     },
   );
+
+  if (response.status === 401) {
+    globalForSpotify.spotifyAccessToken = undefined;
+    globalForSpotify.spotifyAccessTokenExpiresAt = undefined;
+    token = await getSpotifyAccessToken();
+    response = await spotifyFetch(
+      `https://api.spotify.com/v1/artists/${spotifyId}`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        cache: "no-store",
+      },
+    );
+  }
 
   if (!response.ok) {
     throw new Error("Failed to fetch Spotify artist.");
@@ -85,8 +145,8 @@ export async function fetchLatestRelease(spotifyId: string) {
 }
 
 export async function fetchArtistReleases(spotifyId: string) {
-  const token = await getSpotifyAccessToken();
-  const response = await fetch(
+  let token = await getSpotifyAccessToken();
+  let response = await spotifyFetch(
     `https://api.spotify.com/v1/artists/${spotifyId}/albums?include_groups=album,single&market=US&limit=50`,
     {
       headers: {
@@ -95,6 +155,21 @@ export async function fetchArtistReleases(spotifyId: string) {
       cache: "no-store",
     },
   );
+
+  if (response.status === 401) {
+    globalForSpotify.spotifyAccessToken = undefined;
+    globalForSpotify.spotifyAccessTokenExpiresAt = undefined;
+    token = await getSpotifyAccessToken();
+    response = await spotifyFetch(
+      `https://api.spotify.com/v1/artists/${spotifyId}/albums?include_groups=album,single&market=US&limit=50`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        cache: "no-store",
+      },
+    );
+  }
 
   if (!response.ok) {
     throw new Error("Failed to fetch Spotify releases.");

@@ -1,10 +1,7 @@
 import { getServerSession } from "next-auth";
 
-import { ArtistCreate } from "@/components/artist-create";
-import { ArtistImport } from "@/components/artist-import";
-import { ArtistTable, type ArtistRow } from "@/components/artist-table";
-import { SavedViews } from "@/components/saved-views";
-import { SyncAllButton } from "@/components/sync-all";
+import { ArtistsPanel } from "@/components/artists-panel";
+import { type ArtistRow } from "@/components/artist-table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -64,6 +61,7 @@ export default async function ArtistsPage({ searchParams }: ArtistsPageProps) {
     : 25;
   const query = parseString(resolvedSearchParams.q, "");
   const status = parseString(resolvedSearchParams.status, "all");
+  const contact = parseString(resolvedSearchParams.contact, "all");
   const owner = parseString(resolvedSearchParams.owner, "all");
   const sort = parseString(resolvedSearchParams.sort, "created-desc");
   const tag = parseString(resolvedSearchParams.tag, "all");
@@ -79,6 +77,48 @@ export default async function ArtistsPage({ searchParams }: ArtistsPageProps) {
       { spotifyLatestReleaseName: { contains: query, mode: "insensitive" } },
       { notes: { some: { body: { contains: query, mode: "insensitive" } } } },
     ];
+  }
+
+  let contactFilter: ArtistWhere | null = null;
+  if (contact === "email") {
+    contactFilter = { email: { not: null } };
+  } else if (contact === "instagram") {
+    contactFilter = { instagram: { not: null } };
+  } else if (contact === "links") {
+    contactFilter = {
+      OR: [
+        { website: { not: null } },
+        { facebook: { not: null } },
+        { x: { not: null } },
+        { twitter: { not: null } },
+        { tiktok: { not: null } },
+        { youtube: { not: null } },
+        { soundcloud: { not: null } },
+      ],
+    };
+  } else if (contact === "any") {
+    contactFilter = {
+      OR: [
+        { email: { not: null } },
+        { instagram: { not: null } },
+        { website: { not: null } },
+        { facebook: { not: null } },
+        { x: { not: null } },
+        { twitter: { not: null } },
+        { tiktok: { not: null } },
+        { youtube: { not: null } },
+        { soundcloud: { not: null } },
+      ],
+    };
+  }
+
+  if (contactFilter) {
+    if (where.OR) {
+      where.AND = [{ OR: where.OR }, contactFilter];
+      delete where.OR;
+    } else {
+      Object.assign(where, contactFilter);
+    }
   }
 
   if (status !== "all") {
@@ -105,45 +145,45 @@ export default async function ArtistsPage({ searchParams }: ArtistsPageProps) {
     "synced-desc": [{ spotifyLastSyncedAt: "desc" }, { createdAt: "desc" }],
   };
 
-  const [session, artists, filteredCount, statusGroups, needsSyncCount, totalCount, users, tags, upcomingNextSteps, upcomingReminders] =
-    await Promise.all([
-      getServerSession(authOptions),
-      prisma.artist.findMany({
-        where,
-        orderBy: orderByMap[sort] ?? orderByMap["created-desc"],
-        include: {
-          owner: true,
-          tags: true,
-        },
-        skip: (page - 1) * pageSize,
-        take: pageSize,
-      }),
-      prisma.artist.count({ where }),
-      prisma.artist.groupBy({
-        by: ["status"],
-        _count: { status: true },
-      }),
-      prisma.artist.count({ where: { needsSync: true } }),
-      prisma.artist.count(),
-      prisma.user.findMany({ orderBy: { name: "asc" } }),
-      prisma.tag.findMany({ orderBy: { name: "asc" } }),
-      prisma.artist.count({
-        where: {
-          nextStepAt: {
-            gte: new Date(),
-            lte: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7),
-          },
-        },
-      }),
-      prisma.artist.count({
-        where: {
-          reminderAt: {
-            gte: new Date(),
-            lte: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7),
-          },
-        },
-      }),
-    ]);
+  const sessionPromise = getServerSession(authOptions);
+  const artists = await prisma.artist.findMany({
+    where,
+    orderBy: orderByMap[sort] ?? orderByMap["created-desc"],
+    include: {
+      owner: true,
+      tags: true,
+    },
+    skip: (page - 1) * pageSize,
+    take: pageSize,
+  });
+  const filteredCount = await prisma.artist.count({ where });
+  const statusGroups = await prisma.artist.groupBy({
+    by: ["status"],
+    _count: { status: true },
+  });
+  const needsSyncCount = await prisma.artist.count({
+    where: { needsSync: true },
+  });
+  const totalCount = await prisma.artist.count();
+  const users = await prisma.user.findMany({ orderBy: { name: "asc" } });
+  const tags = await prisma.tag.findMany({ orderBy: { name: "asc" } });
+  const upcomingNextSteps = await prisma.artist.count({
+    where: {
+      nextStepAt: {
+        gte: new Date(),
+        lte: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7),
+      },
+    },
+  });
+  const upcomingReminders = await prisma.artist.count({
+    where: {
+      reminderAt: {
+        gte: new Date(),
+        lte: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7),
+      },
+    },
+  });
+  const session = await sessionPromise;
 
   const statusCounts = (statusGroups as Array<{
     status: string;
@@ -245,64 +285,27 @@ export default async function ArtistsPage({ searchParams }: ArtistsPageProps) {
           </CardContent>
         </Card>
       </div>
-      <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
-        <ArtistTable
-          artists={rows}
-          totalCount={filteredCount}
-          page={page}
-          pageSize={pageSize}
-          query={query}
-          status={status}
-          ownerId={owner}
-          sort={sort}
-          tag={tag}
-          isAdmin={isAdmin}
-          ownerOptions={(users as UserListItem[]).map((user) => ({
-            id: user.id,
-            label: user.name ?? user.email ?? user.id,
-          }))}
-          tagOptions={(tags as TagListItem[]).map((item) => ({
-            id: item.id,
-            label: item.name,
-          }))}
-        />
-        <div className="space-y-6">
-          <ArtistCreate />
-          <Card>
-            <CardHeader>
-              <CardTitle>Saved views</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <SavedViews storageKey="artists" excludeKeys={["page"]} />
-            </CardContent>
-          </Card>
-          <ArtistImport />
-          {isAdmin ? (
-            <Card>
-              <CardHeader>
-                <CardTitle>Sync Spotify</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <p className="text-sm text-muted-foreground">
-                  Synces up to 25 artists that are stale or missing data. Uses a
-                  conservative rate limit.
-                </p>
-                <SyncAllButton />
-              </CardContent>
-            </Card>
-          ) : null}
-          <div className="rounded-2xl border border-white/70 bg-white/80 p-6 text-sm text-muted-foreground shadow-[0_20px_50px_-25px_rgba(15,23,42,0.25)] backdrop-blur">
-            <p className="font-semibold text-foreground">
-              Quick sync checklist
-            </p>
-            <ul className="mt-3 space-y-2">
-              <li>Upload the latest scrape CSV.</li>
-              <li>Sync Spotify to pull releases + stats.</li>
-              <li>Start outreach with fresh context.</li>
-            </ul>
-          </div>
-        </div>
-      </div>
+      <ArtistsPanel
+        artists={rows}
+        totalCount={filteredCount}
+        page={page}
+        pageSize={pageSize}
+        query={query}
+        status={status}
+        contact={contact}
+        ownerId={owner}
+        sort={sort}
+        tag={tag}
+        isAdmin={isAdmin}
+        ownerOptions={(users as UserListItem[]).map((user) => ({
+          id: user.id,
+          label: user.name ?? user.email ?? user.id,
+        }))}
+        tagOptions={(tags as TagListItem[]).map((item) => ({
+          id: item.id,
+          label: item.name,
+        }))}
+      />
     </div>
   );
 }

@@ -32,11 +32,10 @@ export function normalizeEmailList(value?: string | null) {
   if (!value) {
     return null;
   }
-  const parts = value
-    .split(",")
-    .map((item) => item.trim())
-    .filter((item) => isValidEmail(item));
-  return parts.length ? parts.join(", ") : null;
+  const matches = value.match(
+    /[^\s<>@,;]+@[^\s<>@,;]+\.[^\s<>@,;]+/g,
+  );
+  return matches && matches.length ? matches.join(", ") : null;
 }
 
 export function parseMonthlyListeners(value?: string | null) {

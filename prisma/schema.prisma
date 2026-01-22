@@ -21,6 +21,7 @@ model User {
   stageChanges ArtistStageHistory[]
   auditLogs    AuditLog[]
   outboundMessages OutboundMessage[]
+  spotifySyncJobs SpotifySyncJob[]
 }
 
 model Account {
@@ -209,6 +210,30 @@ enum ArtistStatus {
   NEGOTIATING
   WON
   LOST
+}
+
+enum SpotifySyncJobStatus {
+  QUEUED
+  RUNNING
+  COMPLETED
+  FAILED
+}
+
+model SpotifySyncJob {
+  id            String                @id @default(cuid())
+  status        SpotifySyncJobStatus  @default(QUEUED)
+  requestedById String?
+  requestedBy   User?                 @relation(fields: [requestedById], references: [id], onDelete: SetNull)
+  cursor        String?
+  total         Int?
+  synced        Int                   @default(0)
+  failed        Int                   @default(0)
+  batchSize     Int                   @default(10)
+  lastError     String?
+  startedAt     DateTime?
+  finishedAt    DateTime?
+  createdAt     DateTime              @default(now())
+  updatedAt     DateTime              @updatedAt
 }
 
 enum UserRole {

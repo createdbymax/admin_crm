@@ -26,11 +26,17 @@ export async function POST(
     contactNotes?: string | null;
   };
 
-  const contactEmail = normalizeEmailList(
-    Array.isArray(body.email) ? body.email.join(",") : body.email ?? null,
-  );
-  if (body.email && !contactEmail) {
-    return NextResponse.json({ error: "Invalid email address." }, { status: 400 });
+  const rawEmailInput = Array.isArray(body.email)
+    ? body.email.join(",")
+    : body.email ?? null;
+  const emailHasValue =
+    rawEmailInput !== null && rawEmailInput.replace(/[\s,]+/g, "").length > 0;
+  const contactEmail = emailHasValue ? normalizeEmailList(rawEmailInput) : null;
+  if (emailHasValue && !contactEmail) {
+    return NextResponse.json(
+      { error: "Invalid email address." },
+      { status: 400 },
+    );
   }
 
   const instagram =

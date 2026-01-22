@@ -1,11 +1,5 @@
-import { ReleaseCalendar } from "@/components/release-calendar";
-import {
-  ReleaseDayPanel,
-  type ReleaseDayPanelEntry,
-} from "@/components/release-day-panel";
-import { ReleaseCalendarFilters } from "@/components/release-calendar-filters";
-import { SavedViews } from "@/components/saved-views";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ReleaseCalendarView } from "@/components/release-calendar-view";
+import type { ReleaseDayPanelEntry } from "@/components/release-day-panel";
 import { prisma } from "@/lib/prisma";
 
 type ArtistWhere = Record<string, unknown>;
@@ -272,114 +266,47 @@ export default async function CalendarPage({ searchParams }: PageProps) {
 
   const allEntries = [...releaseEntries, ...fallbackEntries];
 
-  const dayEntries = selectedDay
-    ? allEntries.filter(
-        (entry) => formatDateParam(entry.releaseDate) === selectedDay,
-      )
-    : [];
-
-  const panelEntries: ReleaseDayPanelEntry[] = (
-    selectedDay ? dayEntries : allEntries
-  ).map((entry) => ({
-    id: entry.id,
-    artistId: entry.artistId,
-    artistName: entry.artistName,
-    releaseName: entry.releaseName,
-    releaseType: entry.releaseType,
-    releaseDate: formatDateParam(entry.releaseDate),
-    releaseUrl: entry.releaseUrl,
-    spotifyUrl: entry.spotifyUrl,
-    spotifyImage: entry.spotifyImage,
-    monthlyListeners: entry.monthlyListeners,
-    spotifyFollowers: entry.spotifyFollowers,
-    spotifyPopularity: entry.spotifyPopularity,
-    spotifyGenres: entry.spotifyGenres,
-    status: entry.status,
-    ownerName: entry.ownerName,
-    nextStepAt: entry.nextStepAt,
-    nextStepNote: entry.nextStepNote,
-  }));
-
-  const uniqueArtists = new Set(allEntries.map((entry) => entry.artistId))
-    .size;
-  const selectedDayLabel = selectedDay
-    ? new Intl.DateTimeFormat("en-US", {
-        weekday: "long",
-        month: "long",
-        day: "numeric",
-        timeZone: "UTC",
-      }).format(parseDayParam(selectedDay))
-    : null;
   const genreOptions = Array.from(
     new Set((genreRows as GenreRow[]).flatMap((row) => row.spotifyGenres ?? [])),
   ).sort();
 
+  const allEntriesSerialized: ReleaseDayPanelEntry[] = allEntries.map(
+    (entry) => ({
+      id: entry.id,
+      artistId: entry.artistId,
+      artistName: entry.artistName,
+      releaseName: entry.releaseName,
+      releaseType: entry.releaseType,
+      releaseDate: formatDateParam(entry.releaseDate),
+      releaseUrl: entry.releaseUrl,
+      spotifyUrl: entry.spotifyUrl,
+      spotifyImage: entry.spotifyImage,
+      monthlyListeners: entry.monthlyListeners,
+      spotifyFollowers: entry.spotifyFollowers,
+      spotifyPopularity: entry.spotifyPopularity,
+      spotifyGenres: entry.spotifyGenres,
+      status: entry.status,
+      ownerName: entry.ownerName,
+      nextStepAt: entry.nextStepAt,
+      nextStepNote: entry.nextStepNote,
+    }),
+  );
+
   return (
-    <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
-      <ReleaseCalendar
-        monthDate={monthDate}
-        releases={allEntries}
-        prevMonth={prevMonth}
-        nextMonth={nextMonth}
-        selectedDay={selectedDay}
-      />
-      <div className="space-y-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Filters</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ReleaseCalendarFilters
-              monthParam={formatMonthParam(monthDate)}
-              status={statusFilter}
-              owner={ownerFilter}
-              genre={genreFilter}
-              owners={(owners as UserListItem[]).map((owner) => ({
-                id: owner.id,
-                label: owner.name ?? owner.email ?? owner.id,
-              }))}
-              genres={genreOptions}
-              selectedDay={selectedDay}
-            />
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>Saved views</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <SavedViews storageKey="calendar" excludeKeys={["day"]} />
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>Month overview</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2 text-sm text-muted-foreground">
-            <p>
-              {allEntries.length} release
-              {allEntries.length === 1 ? "" : "s"} scheduled.
-            </p>
-            <p>
-              {uniqueArtists} artist
-              {uniqueArtists === 1 ? "" : "s"} represented.
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>
-              {selectedDay ? "Releases on this day" : "Releases this month"}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ReleaseDayPanel
-              entries={panelEntries}
-              selectedDayLabel={selectedDayLabel}
-            />
-          </CardContent>
-        </Card>
-      </div>
-    </div>
+    <ReleaseCalendarView
+      monthParam={formatMonthParam(monthDate)}
+      prevMonth={prevMonth}
+      nextMonth={nextMonth}
+      entries={allEntriesSerialized}
+      statusFilter={statusFilter}
+      ownerFilter={ownerFilter}
+      genreFilter={genreFilter}
+      owners={(owners as UserListItem[]).map((owner) => ({
+        id: owner.id,
+        label: owner.name ?? owner.email ?? owner.id,
+      }))}
+      genres={genreOptions}
+      initialSelectedDay={selectedDay}
+    />
   );
 }

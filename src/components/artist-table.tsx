@@ -52,12 +52,15 @@ type ArtistTableProps = {
   pageSize: number;
   query: string;
   status: string;
+  contact: string;
   ownerId: string;
   sort: string;
   tag: string;
   ownerOptions: OwnerOption[];
   tagOptions: OwnerOption[];
   isAdmin: boolean;
+  selectedArtistId?: string | null;
+  onSelectArtist?: (artist: ArtistRow) => void;
 };
 
 export function ArtistTable({
@@ -67,12 +70,15 @@ export function ArtistTable({
   pageSize,
   query,
   status,
+  contact,
   ownerId,
   sort,
   tag,
   ownerOptions,
   tagOptions,
   isAdmin,
+  selectedArtistId,
+  onSelectArtist,
 }: ArtistTableProps) {
   const router = useRouter();
   const [refreshingId, setRefreshingId] = useState<string | null>(null);
@@ -201,6 +207,20 @@ export function ArtistTable({
     }
   };
 
+  const handleRowClick = (
+    event: React.MouseEvent<HTMLTableRowElement>,
+    artist: ArtistRow,
+  ) => {
+    if (!onSelectArtist) {
+      return;
+    }
+    const target = event.target as HTMLElement | null;
+    if (target?.closest("a,button,input,select,textarea,label")) {
+      return;
+    }
+    onSelectArtist(artist);
+  };
+
   return (
     <div className="rounded-2xl border border-white/70 bg-white shadow-[0_20px_50px_-25px_rgba(15,23,42,0.25)]">
       <div className="sticky top-4 z-10 flex flex-wrap items-end justify-between gap-4 border-b border-white/60 bg-white px-6 py-4">
@@ -233,6 +253,24 @@ export function ArtistTable({
               <option value="NEGOTIATING">Negotiating</option>
               <option value="WON">Won</option>
               <option value="LOST">Lost</option>
+            </select>
+          </div>
+          <div className="space-y-1">
+            <p className="text-xs font-mono uppercase tracking-[0.2em] text-muted-foreground">
+              Contact
+            </p>
+            <select
+              className="w-44 rounded-md border border-input bg-white/80 p-2 text-sm"
+              value={contact}
+              onChange={(event) =>
+                updateParams({ contact: event.target.value })
+              }
+            >
+              <option value="all">All</option>
+              <option value="any">Any contact</option>
+              <option value="email">Email</option>
+              <option value="instagram">Instagram</option>
+              <option value="links">Other links</option>
             </select>
           </div>
           <div className="space-y-1">
@@ -435,7 +473,16 @@ export function ArtistTable({
         </TableHeader>
         <TableBody>
           {artists.map((artist) => (
-            <TableRow key={artist.id}>
+            <TableRow
+              key={artist.id}
+              className={
+                selectedArtistId === artist.id
+                  ? "cursor-pointer bg-slate-50"
+                  : "cursor-pointer"
+              }
+              aria-selected={selectedArtistId === artist.id}
+              onClick={(event) => handleRowClick(event, artist)}
+            >
               <TableCell>
                 <input
                   type="checkbox"
