@@ -4,6 +4,14 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
+type SearchArtist = {
+  id: string;
+  name: string;
+  spotifyLatestReleaseName: string | null;
+  spotifyLatestReleaseDate: Date | null;
+  spotifyLatestReleaseType: string | null;
+};
+
 export async function GET(request: Request) {
   const session = await getServerSession(authOptions);
   const email = session?.user?.email ?? "";
@@ -39,7 +47,7 @@ export async function GET(request: Request) {
   });
 
   return NextResponse.json({
-    results: results.map((artist) => ({
+    results: (results as SearchArtist[]).map((artist) => ({
       id: artist.id,
       name: artist.name,
       spotifyLatestReleaseName: artist.spotifyLatestReleaseName,

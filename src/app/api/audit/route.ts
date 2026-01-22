@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
+import type { Prisma } from "@prisma/client";
 
 import { authOptions } from "@/lib/auth";
 import { logAuditEvent } from "@/lib/audit";
@@ -29,7 +30,7 @@ export async function POST(request: Request) {
     userEmail: email,
     entityType: body.entityType ?? null,
     entityId: body.entityId ?? null,
-    metadata: body.metadata ?? null,
+    metadata: (body.metadata ?? null) as Prisma.InputJsonValue | null,
     path: body.path ?? null,
     request,
   });

@@ -1,5 +1,6 @@
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
+import type { Prisma } from "@prisma/client";
 
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,9 +15,7 @@ import {
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
-type AuditLogWithUser = Awaited<
-  ReturnType<typeof prisma.auditLog.findMany>
->[number];
+type AuditLogWithUser = Prisma.AuditLogGetPayload<{ include: { user: true } }>;
 
 function formatActor(name?: string | null, email?: string | null) {
   if (name && email) {

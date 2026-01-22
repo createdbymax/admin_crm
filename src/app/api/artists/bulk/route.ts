@@ -61,7 +61,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Invalid status." }, { status: 400 });
     }
 
-    const updated = await prisma.$transaction(async (tx: typeof prisma) => {
+    const updated = await prisma.$transaction(async (tx) => {
       const artists = await tx.artist.findMany({
         where: { id: { in: artistIds } },
         select: { id: true, status: true },

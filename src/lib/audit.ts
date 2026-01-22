@@ -1,3 +1,5 @@
+import { Prisma } from "@prisma/client";
+
 import { prisma } from "@/lib/prisma";
 
 type AuditEventInput = {
@@ -6,7 +8,7 @@ type AuditEventInput = {
   userEmail?: string | null;
   entityType?: string | null;
   entityId?: string | null;
-  metadata?: unknown;
+  metadata?: Prisma.InputJsonValue | null;
   path?: string | null;
   method?: string | null;
   ip?: string | null;
@@ -43,7 +45,7 @@ export async function logAuditEvent(input: AuditEventInput) {
       userEmail: input.userEmail ?? null,
       entityType: input.entityType ?? null,
       entityId: input.entityId ?? null,
-      metadata: input.metadata ?? null,
+      metadata: input.metadata ?? Prisma.DbNull,
       path: input.path ?? requestDetails.path ?? null,
       method: input.method ?? requestDetails.method ?? null,
       ip: input.ip ?? requestDetails.ip ?? null,

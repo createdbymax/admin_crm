@@ -29,7 +29,7 @@ export async function POST(
   const nextStatus = body.status;
 
   let fromStatus: ArtistStatus = "LEAD";
-  const updated = await prisma.$transaction(async (tx: typeof prisma) => {
+  const updated = await prisma.$transaction(async (tx) => {
     const current = await tx.artist.findUnique({
       where: { id },
       select: { status: true },

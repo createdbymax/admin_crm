@@ -2,12 +2,12 @@
 
 import { signIn, useSession } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useMemo } from "react";
+import { Suspense, useEffect, useMemo } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-export default function LoginPage() {
+function LoginClient() {
   const { status } = useSession();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -49,5 +49,19 @@ export default function LoginPage() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center px-6 text-sm text-muted-foreground">
+          Loading...
+        </div>
+      }
+    >
+      <LoginClient />
+    </Suspense>
   );
 }
