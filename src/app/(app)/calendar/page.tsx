@@ -1,6 +1,7 @@
 import { ReleaseCalendarView } from "@/components/release-calendar-view";
 import type { ReleaseDayPanelEntry } from "@/components/release-day-panel";
 import { prisma } from "@/lib/prisma";
+import { getCached } from "@/lib/cache";
 
 type ArtistWhere = Record<string, unknown>;
 type ReleaseWhere = Record<string, unknown>;
@@ -157,7 +158,7 @@ export default async function CalendarPage({ searchParams }: PageProps) {
     releaseWhere.artist = releaseArtistWhere;
   }
 
-  const [releases, artistsFallback, owners, genreRows] = await Promise.all([
+  const [releases, artistsFallback, owners, genreOptions] = await Promise.all([
     prisma.artistRelease.findMany({
       where: releaseWhere,
       orderBy: { releaseDate: "asc" },
@@ -213,7 +214,16 @@ export default async function CalendarPage({ searchParams }: PageProps) {
       },
     }),
     prisma.user.findMany({ orderBy: { name: "asc" } }),
-    prisma.artist.findMany({ select: { spotifyGenres: true } }),
+    // Cache genre list for 5 minutes since it changes infrequently
+    getCached('all-genres', 300000, async () => {
+      const rows = await prisma.artist.findMany({ 
+        select: { spotifyGenres: true },
+        where: { spotifyGenres: { isEmpty: false } }
+      });
+      return Array.from(
+        new Set(rows.flatMap((row: GenreRow) => row.spotifyGenres ?? []))
+      ).sort();
+    }),
   ]);
 
   const releaseEntries = (releases as ReleaseItem[]).map((release) => ({
@@ -265,10 +275,6 @@ export default async function CalendarPage({ searchParams }: PageProps) {
     }));
 
   const allEntries = [...releaseEntries, ...fallbackEntries];
-
-  const genreOptions = Array.from(
-    new Set((genreRows as GenreRow[]).flatMap((row) => row.spotifyGenres ?? [])),
-  ).sort();
 
   const allEntriesSerialized: ReleaseDayPanelEntry[] = allEntries.map(
     (entry) => ({

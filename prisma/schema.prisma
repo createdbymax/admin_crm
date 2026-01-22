@@ -107,6 +107,16 @@ model Artist {
   stageHistory             ArtistStageHistory[]
   releases                 ArtistRelease[]
   outboundMessages         OutboundMessage[]
+
+  @@index([status])
+  @@index([ownerId])
+  @@index([needsSync])
+  @@index([spotifyLastSyncedAt])
+  @@index([nextStepAt])
+  @@index([reminderAt])
+  @@index([spotifyLatestReleaseDate])
+  @@index([createdAt])
+  @@index([name])
 }
 
 model ArtistNote {

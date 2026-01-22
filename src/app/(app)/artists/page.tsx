@@ -148,44 +148,48 @@ export default async function ArtistsPage({ searchParams }: ArtistsPageProps) {
   };
 
   const sessionPromise = getServerSession(authOptions);
-  const artists = await prisma.artist.findMany({
-    where,
-    orderBy: orderByMap[sort] ?? orderByMap["created-desc"],
-    include: {
-      owner: true,
-      tags: true,
-    },
-    skip: (page - 1) * pageSize,
-    take: pageSize,
-  });
-  const filteredCount = await prisma.artist.count({ where });
-  const statusGroups = await prisma.artist.groupBy({
-    by: ["status"],
-    _count: { status: true },
-  });
-  const needsSyncCount = await prisma.artist.count({
-    where: { needsSync: true },
-  });
-  const totalCount = await prisma.artist.count();
-  const users = await prisma.user.findMany({ orderBy: { name: "asc" } });
-  const tags = await prisma.tag.findMany({ orderBy: { name: "asc" } });
-  const upcomingNextSteps = await prisma.artist.count({
-    where: {
-      nextStepAt: {
-        gte: new Date(),
-        lte: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7),
+  
+  // Parallel queries for better performance
+  const [artists, filteredCount, statusGroups, stats, users, tags, session] = await Promise.all([
+    prisma.artist.findMany({
+      where,
+      orderBy: orderByMap[sort] ?? orderByMap["created-desc"],
+      include: {
+        owner: true,
+        tags: true,
       },
-    },
-  });
-  const upcomingReminders = await prisma.artist.count({
-    where: {
-      reminderAt: {
-        gte: new Date(),
-        lte: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7),
-      },
-    },
-  });
-  const session = await sessionPromise;
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+    }),
+    prisma.artist.count({ where }),
+    prisma.artist.groupBy({
+      by: ["status"],
+      _count: { status: true },
+    }),
+    // Combined stats query using raw SQL for efficiency
+    prisma.$queryRaw<Array<{
+      total: bigint;
+      needs_sync: bigint;
+      upcoming_next_steps: bigint;
+      upcoming_reminders: bigint;
+    }>>`
+      SELECT 
+        COUNT(*) as total,
+        COUNT(*) FILTER (WHERE "needsSync" = true) as needs_sync,
+        COUNT(*) FILTER (WHERE "nextStepAt" >= NOW() AND "nextStepAt" <= NOW() + INTERVAL '7 days') as upcoming_next_steps,
+        COUNT(*) FILTER (WHERE "reminderAt" >= NOW() AND "reminderAt" <= NOW() + INTERVAL '7 days') as upcoming_reminders
+      FROM "Artist"
+    `,
+    prisma.user.findMany({ orderBy: { name: "asc" } }),
+    prisma.tag.findMany({ orderBy: { name: "asc" } }),
+    sessionPromise,
+  ]);
+
+  const statsRow = stats[0];
+  const totalCount = Number(statsRow?.total ?? 0);
+  const needsSyncCount = Number(statsRow?.needs_sync ?? 0);
+  const upcomingNextSteps = Number(statsRow?.upcoming_next_steps ?? 0);
+  const upcomingReminders = Number(statsRow?.upcoming_reminders ?? 0);
 
   const statusCounts = (statusGroups as Array<{
     status: string;

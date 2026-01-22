@@ -29,24 +29,45 @@ export async function syncArtistById(artistId: string) {
     releaseName: latestRelease?.name,
   });
 
-  for (const release of releases) {
-    await prisma.artistRelease.upsert({
-      where: { spotifyReleaseId: release.id },
-      create: {
-        artistId: artist.id,
-        name: release.name,
-        releaseDate: release.releaseDate,
-        releaseUrl: release.url,
-        releaseType: release.type,
-        spotifyReleaseId: release.id,
-      },
-      update: {
-        name: release.name,
-        releaseDate: release.releaseDate,
-        releaseUrl: release.url,
-        releaseType: release.type,
-      },
+  // Batch upsert releases to avoid N+1 queries
+  if (releases.length > 0) {
+    const releaseIds = releases.map(r => r.id);
+    const existing = await prisma.artistRelease.findMany({
+      where: { spotifyReleaseId: { in: releaseIds } },
+      select: { spotifyReleaseId: true }
     });
+
+    const existingIds = new Set(existing.map(r => r.spotifyReleaseId));
+    const toCreate = releases.filter(r => !existingIds.has(r.id));
+    const toUpdate = releases.filter(r => existingIds.has(r.id));
+
+    await Promise.all([
+      toCreate.length > 0 ? prisma.artistRelease.createMany({
+        data: toCreate.map(release => ({
+          artistId: artist.id,
+          name: release.name,
+          releaseDate: release.releaseDate,
+          releaseUrl: release.url,
+          releaseType: release.type,
+          spotifyReleaseId: release.id,
+        })),
+        skipDuplicates: true
+      }) : Promise.resolve(),
+      ...toUpdate.map(release => 
+        prisma.artistRelease.updateMany({
+          where: { 
+            spotifyReleaseId: release.id,
+            artistId: artist.id 
+          },
+          data: {
+            name: release.name,
+            releaseDate: release.releaseDate,
+            releaseUrl: release.url,
+            releaseType: release.type,
+          }
+        })
+      )
+    ]);
   }
 
   return prisma.artist.update({
