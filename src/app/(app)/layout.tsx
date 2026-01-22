@@ -62,6 +62,12 @@ export default async function AppLayout({
                   Reports
                 </Link>
               ) : null}
+              <Link
+                href="/help"
+                className="rounded-full border border-transparent px-3 py-1 text-muted-foreground transition hover:border-white/70 hover:bg-white/70 hover:text-foreground"
+              >
+                Help
+              </Link>
             </nav>
           </div>
           <div className="flex flex-wrap items-center gap-2 sm:gap-3">
