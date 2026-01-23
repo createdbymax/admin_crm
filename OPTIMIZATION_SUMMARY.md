@@ -123,7 +123,7 @@ const genreOptions = await getCached('all-genres', 300000, async () => {
 
 ---
 
-### ✅ 6. Added Query Monitoring (Development)
+### ✅ 6. Added Query Monitoring Utility
 **File:** `src/lib/query-monitor.ts`
 
 Development utility to track:
@@ -131,10 +131,21 @@ Development utility to track:
 - Slow queries (>100ms)
 - Query patterns
 
+**Note:** Prisma's `$use` middleware API was removed in newer versions. The utility now provides manual tracking functions. For production monitoring, consider:
+- Prisma's built-in query logging
+- APM tools (DataDog, New Relic, etc.)
+- Prisma Pulse for real-time monitoring
+
 Usage:
 ```typescript
-import { logQueryStats } from '@/lib/query-monitor';
-// At end of request
+import { logQueryStats, trackQuery } from '@/lib/query-monitor';
+
+// Manual tracking (optional)
+const start = Date.now();
+const result = await prisma.artist.findMany();
+trackQuery('Artist', 'findMany', Date.now() - start);
+
+// Log stats
 logQueryStats('Artist List Page');
 ```
 
