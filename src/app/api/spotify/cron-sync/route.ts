@@ -66,8 +66,6 @@ export async function GET(request: Request) {
     ],
   };
 
-  const total = await prisma.artist.count({ where });
-
   if (total === 0) {
     return NextResponse.json({
       message: "No artists need syncing",
@@ -80,7 +78,7 @@ export async function GET(request: Request) {
     data: {
       requestedById: null, // Automated job
       total,
-      batchSize: 10,
+      batchSize: 50, // Increased from 10 to 50
     },
   });
 

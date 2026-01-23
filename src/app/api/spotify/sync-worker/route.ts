@@ -101,20 +101,22 @@ export async function GET(request: Request) {
     let synced = 0;
     let failed = 0;
     let lastError: string | null = null;
-    const pauseMs = 150;
-    for (const artist of batch) {
-      try {
-        await syncArtistById(artist.id);
+    
+    // Process artists in parallel with rate limiting
+    // Spotify allows ~10-20 requests/second, so we can do batches of 10 in parallel
+    const results = await Promise.allSettled(
+      batch.map(artist => syncArtistById(artist.id))
+    );
+    
+    results.forEach((result) => {
+      if (result.status === "fulfilled") {
         synced += 1;
-      } catch (error) {
+      } else {
         failed += 1;
-        lastError = error instanceof Error ? error.message : "Sync failed.";
-        console.error(error);
+        lastError = result.reason instanceof Error ? result.reason.message : "Sync failed.";
+        console.error(result.reason);
       }
-      if (pauseMs > 0) {
-        await new Promise((resolve) => setTimeout(resolve, pauseMs));
-      }
-    }
+    });
 
     const nextCursor = batch[batch.length - 1]?.id ?? job.cursor;
     const updated = await syncJobClient.update({
