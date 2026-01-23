@@ -19,7 +19,12 @@ function getSyncJobClient() {
 export async function GET(request: Request) {
   // Verify this is a Vercel Cron request
   const authHeader = request.headers.get("authorization");
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+  
+  // Allow local testing without auth in development
+  const isDevelopment = process.env.NODE_ENV !== "production";
+  const isAuthorized = isDevelopment || authHeader === `Bearer ${process.env.CRON_SECRET}`;
+  
+  if (!isAuthorized) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

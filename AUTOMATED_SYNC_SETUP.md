@@ -44,16 +44,50 @@ The CRM now automatically scans all artists for new releases daily at 2 AM UTC u
    git push
    ```
 
-4. **Verify**:
-   - Check Vercel deployment logs
-   - Wait for 2 AM UTC or manually test the endpoint:
-     ```bash
-     curl -H "Authorization: Bearer YOUR_CRON_SECRET" \
-       https://admin.crm.losthills.io/api/spotify/cron-sync
-     ```
+4. **Verify & Test**:
+   
+   **Option A: Vercel Dashboard (Recommended)**
+   - Go to your Vercel project → Settings → Cron Jobs
+   - Find your cron job in the list
+   - Click the "..." menu → "Run Now" to manually trigger it
+   - Check the execution logs in the same panel
+   
+   **Option B: Manual HTTP Request**
+   ```bash
+   curl -X GET https://admin.crm.losthills.io/api/spotify/cron-sync \
+     -H "Authorization: Bearer YOUR_CRON_SECRET"
+   ```
+   
+   **Option C: Wait for scheduled execution**
+   - Wait for 2 AM UTC
+   - Check Vercel deployment logs for automatic execution
 
 ## Manual Sync
 Users can still manually trigger a sync from the Artists page using the "Sync all Spotify" button.
+
+## Local Testing
+
+To test the cron endpoint locally:
+
+1. **Start your dev server**:
+   ```bash
+   pnpm dev
+   ```
+
+2. **Trigger the endpoint** (no auth required in development):
+   ```bash
+   curl http://localhost:3000/api/spotify/cron-sync
+   ```
+
+3. **Check the response**:
+   - Should return `{ "message": "Sync job created", "jobId": "...", "total": X }`
+   - Or `{ "message": "No artists need syncing", "total": 0 }`
+   - Or `{ "message": "Sync job already running", "jobId": "..." }`
+
+4. **Monitor the sync**:
+   - The sync worker will process the job automatically in development
+   - Check your terminal logs for sync progress
+   - Or visit the Artists page to see the sync status UI
 
 ## Monitoring
 - Check `SpotifySyncJob` table in Prisma Studio for job history
