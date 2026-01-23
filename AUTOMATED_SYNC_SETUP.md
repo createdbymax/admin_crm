@@ -93,12 +93,15 @@ To test the cron endpoint locally:
    - Or visit the Artists page to see the sync status UI
 
 ## Monitoring
-- Check `SpotifySyncJob` table in Prisma Studio for job history
-- View sync status in the Artists page UI (shows progress bar and stats)
-- Check Vercel logs for cron execution history:
+- **Artists Page UI**: Go to `/artists` and scroll to the "Spotify Sync" card to see:
+  - Real-time progress bar
+  - Status: "RUNNING — 450/1500 synced (5 failed)"
+  - Auto-refreshes every 30 seconds
+- **Prisma Studio**: Check `SpotifySyncJob` table for job history
+- **Vercel Logs**: View cron execution history:
   - `/api/spotify/cron-sync` runs once daily at 2 AM UTC
   - `/api/spotify/sync-worker` runs every 5 minutes while jobs are active
-- A full sync of 1500 artists takes approximately 12-13 hours to complete
+- A full sync of 1500 artists takes approximately 2.5 hours to complete
 
 ## Schedule Customization
 To change the sync schedule, edit `vercel.json`:
