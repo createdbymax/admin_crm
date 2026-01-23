@@ -82,8 +82,19 @@ export async function GET(request: Request) {
     },
   });
 
+  // Trigger the first worker execution immediately (fire and forget)
+  const workerUrl = new URL('/api/spotify/sync-worker', request.url);
+  fetch(workerUrl.toString(), {
+    method: 'GET',
+    headers: {
+      'x-trigger-source': 'cron-sync'
+    }
+  }).catch(() => {
+    // Ignore errors - worker will be triggered by UI polling if this fails
+  });
+
   return NextResponse.json({
-    message: "Sync job created",
+    message: "Sync job created and worker triggered",
     jobId: job.id,
     total,
   });

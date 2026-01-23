@@ -129,6 +129,20 @@ export async function GET(request: Request) {
       },
     });
 
+    // Trigger next batch immediately if there's more work to do
+    const hasMoreWork = updated.synced < (updated.total ?? 0);
+    if (hasMoreWork) {
+      const workerUrl = new URL('/api/spotify/sync-worker', request.url);
+      fetch(workerUrl.toString(), {
+        method: 'GET',
+        headers: {
+          'x-trigger-source': 'self-chain'
+        }
+      }).catch(() => {
+        // Ignore errors - will be picked up by UI polling
+      });
+    }
+
     return NextResponse.json({
       job: {
         id: updated.id,

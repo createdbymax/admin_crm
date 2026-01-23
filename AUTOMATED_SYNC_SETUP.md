@@ -10,11 +10,14 @@ The CRM now automatically scans all artists for new releases daily at 2 AM UTC u
    - Not synced in the last 7 days, OR
    - Marked with `needsSync: true`
 3. **Sync job** is created in the database (`SpotifySyncJob`)
-4. **Sync worker cron** (`/api/spotify/sync-worker`) runs every 5 minutes to process active jobs
-5. **Worker processes** 50 artists per batch in parallel (respecting 10 req/sec rate limit)
-6. **Release calendar** is automatically updated with new releases
+4. **Worker is triggered immediately** - the cron endpoint calls the worker to start processing
+5. **Worker chains itself** - after each batch, it triggers itself again until all artists are synced
+6. **Worker processes** 50 artists per batch in parallel (respecting 10 req/sec rate limit)
+7. **Release calendar** is automatically updated with new releases
 
-With 1500 artists and 50 per batch, it takes about 30 batches × 5 minutes = ~2.5 hours to complete a full sync.
+With 1500 artists and 50 per batch, it takes about 30 batches. Each batch takes ~5-10 seconds, so the full sync completes in ~5-10 minutes total.
+
+**Note**: This self-chaining approach works around Vercel Hobby's limitation of only daily cron jobs. The worker triggers itself to process all batches continuously.
 
 ## Files Created/Modified
 
@@ -100,8 +103,8 @@ To test the cron endpoint locally:
 - **Prisma Studio**: Check `SpotifySyncJob` table for job history
 - **Vercel Logs**: View cron execution history:
   - `/api/spotify/cron-sync` runs once daily at 2 AM UTC
-  - `/api/spotify/sync-worker` runs every 5 minutes while jobs are active
-- A full sync of 1500 artists takes approximately 2.5 hours to complete
+  - `/api/spotify/sync-worker` chains itself until complete
+- A full sync of 1500 artists takes approximately 5-10 minutes to complete
 
 ## Schedule Customization
 To change the sync schedule, edit `vercel.json`:

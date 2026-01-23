@@ -3,10 +3,6 @@
     {
       "path": "/api/spotify/cron-sync",
       "schedule": "0 2 * * *"
-    },
-    {
-      "path": "/api/spotify/sync-worker",
-      "schedule": "*/5 * * * *"
     }
   ]
 }
