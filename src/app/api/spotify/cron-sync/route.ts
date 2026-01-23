@@ -66,6 +66,8 @@ export async function GET(request: Request) {
     ],
   };
 
+  const total = await prisma.artist.count({ where });
+
   if (total === 0) {
     return NextResponse.json({
       message: "No artists need syncing",
