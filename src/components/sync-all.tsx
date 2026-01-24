@@ -61,7 +61,6 @@ export function SyncAllButton() {
 
   useEffect(() => {
     if (
-      process.env.NODE_ENV === "production" ||
       !job ||
       (job.status !== "RUNNING" && job.status !== "QUEUED")
     ) {
@@ -71,11 +70,11 @@ export function SyncAllButton() {
       try {
         await fetch("/api/spotify/sync-worker");
       } catch {
-        // Ignore local worker errors.
+        // Ignore worker errors.
       }
     };
     void tick();
-    const interval = setInterval(tick, 30000); // 30 seconds - dev only
+    const interval = setInterval(tick, 30000); // 30 seconds
     return () => clearInterval(interval);
   }, [job?.status, job?.id]);
 

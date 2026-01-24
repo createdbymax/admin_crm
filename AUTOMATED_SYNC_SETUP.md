@@ -7,8 +7,9 @@ The CRM now automatically scans all artists for new releases daily at 2 AM UTC u
 
 1. **Vercel Cron** (`vercel.json`) triggers `/api/spotify/cron-sync` daily at 2 AM UTC
 2. **Cron endpoint** checks for artists that need syncing:
-   - Not synced in the last 7 days, OR
-   - Marked with `needsSync: true`
+   - Not synced in the last 24 hours, OR
+   - Marked with `needsSync: true`, OR
+   - Never synced before
 3. **Sync job** is created in the database (`SpotifySyncJob`)
 4. **Worker is triggered immediately** - the cron endpoint calls the worker to start processing
 5. **Worker chains itself** - after each batch, it triggers itself again until all artists are synced

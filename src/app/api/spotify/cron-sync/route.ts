@@ -51,13 +51,14 @@ export async function GET(request: Request) {
   }
 
   // Find artists that need syncing (stale or marked for sync)
-  const staleCutoff = new Date(Date.now() - 1000 * 60 * 60 * 24 * 7); // 7 days
+  const staleCutoff = new Date(Date.now() - 1000 * 60 * 60 * 24); // 1 day
   const where = {
     AND: [
       {
         OR: [
           { needsSync: true },
           { spotifyLastSyncedAt: { lt: staleCutoff } },
+          { spotifyLastSyncedAt: null }, // Never synced
         ],
       },
       {
@@ -85,14 +86,17 @@ export async function GET(request: Request) {
   });
 
   // Trigger the first worker execution immediately (fire and forget)
-  const workerUrl = new URL('/api/spotify/sync-worker', request.url);
-  fetch(workerUrl.toString(), {
+  const baseUrl = process.env.NEXTAUTH_URL || 'https://admin.crm.losthills.io';
+  const workerUrl = `${baseUrl}/api/spotify/sync-worker`;
+  
+  fetch(workerUrl, {
     method: 'GET',
     headers: {
       'x-trigger-source': 'cron-sync'
     }
-  }).catch(() => {
-    // Ignore errors - worker will be triggered by UI polling if this fails
+  }).catch((error) => {
+    console.error('Failed to trigger worker:', error);
+    // Worker will be triggered by UI polling if this fails
   });
 
   return NextResponse.json({

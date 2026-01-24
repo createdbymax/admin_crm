@@ -66,13 +66,14 @@ export async function GET(request: Request) {
   }
 
   try {
-    const staleCutoff = new Date(Date.now() - 1000 * 60 * 60 * 24 * 7);
+    const staleCutoff = new Date(Date.now() - 1000 * 60 * 60 * 24); // 1 day
     const where = {
       AND: [
         {
           OR: [
             { needsSync: true },
             { spotifyLastSyncedAt: { lt: staleCutoff } },
+            { spotifyLastSyncedAt: null }, // Never synced
           ],
         },
         {
@@ -132,14 +133,17 @@ export async function GET(request: Request) {
     // Trigger next batch immediately if there's more work to do
     const hasMoreWork = updated.synced < (updated.total ?? 0);
     if (hasMoreWork) {
-      const workerUrl = new URL('/api/spotify/sync-worker', request.url);
-      fetch(workerUrl.toString(), {
+      const baseUrl = process.env.NEXTAUTH_URL || 'https://admin.crm.losthills.io';
+      const workerUrl = `${baseUrl}/api/spotify/sync-worker`;
+      
+      fetch(workerUrl, {
         method: 'GET',
         headers: {
           'x-trigger-source': 'self-chain'
         }
-      }).catch(() => {
-        // Ignore errors - will be picked up by UI polling
+      }).catch((error) => {
+        console.error('Failed to chain worker:', error);
+        // Will be picked up by UI polling
       });
     }
 

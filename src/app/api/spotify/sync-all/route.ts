@@ -119,13 +119,14 @@ export async function POST(request: Request) {
     });
   }
 
-  const staleCutoff = new Date(Date.now() - 1000 * 60 * 60 * 24 * 7);
+  const staleCutoff = new Date(Date.now() - 1000 * 60 * 60 * 24); // 1 day
   const where = {
     AND: [
       {
         OR: [
           { needsSync: true },
           { spotifyLastSyncedAt: { lt: staleCutoff } },
+          { spotifyLastSyncedAt: null }, // Never synced
         ],
       },
       {

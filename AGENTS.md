@@ -55,7 +55,7 @@ Key entities in `prisma/schema.prisma`:
 - Audit logging (`src/lib/audit.ts`) tracks all artist modifications and user actions
 - NextAuth handles Google OAuth; session data includes user role for authorization
 - Automated Spotify sync runs daily at 2 AM UTC via Vercel Cron (`/api/spotify/cron-sync`)
-  - Syncs artists not updated in 7 days or marked with `needsSync: true`
+  - Syncs artists not updated in 24 hours, marked with `needsSync: true`, or never synced
   - Creates a `SpotifySyncJob` processed by the sync worker
   - Manual sync available via "Sync all Spotify" button in UI
 
