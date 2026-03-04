@@ -14,7 +14,7 @@ interface UserEditorProps {
   value: string | null;
   users: User[];
   onChange: (userId: string | null) => void;
-  onSave: () => void;
+  onSave: (userId?: string | null) => void;
   onCancel: () => void;
   autoFocus?: boolean;
 }
@@ -66,8 +66,9 @@ export function UserEditor({
     } else if (e.key === 'Enter') {
       e.preventDefault();
       if (filteredUsers[selectedIndex]) {
-        onChange(filteredUsers[selectedIndex].id);
-        onSave();
+        const userId = filteredUsers[selectedIndex].id;
+        onChange(userId);
+        onSave(userId);
       }
     } else if (e.key === 'ArrowDown') {
       e.preventDefault();
@@ -80,12 +81,12 @@ export function UserEditor({
 
   const handleSelect = (user: User) => {
     onChange(user.id);
-    onSave();
+    onSave(user.id);
   };
 
   const handleUnassign = () => {
     onChange(null);
-    onSave();
+    onSave(null);
   };
 
   const getUserDisplay = (user: User) => {

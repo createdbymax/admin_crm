@@ -8,7 +8,7 @@ interface SelectEditorProps {
   value: string;
   options: SelectOption[];
   onChange: (value: string) => void;
-  onSave: () => void;
+  onSave: (value?: string) => void;
   onCancel: () => void;
   autoFocus?: boolean;
   allowEmpty?: boolean;
@@ -58,8 +58,9 @@ export function SelectEditor({
     } else if (e.key === 'Enter') {
       e.preventDefault();
       if (filteredOptions[selectedIndex]) {
-        onChange(filteredOptions[selectedIndex].label);
-        onSave();
+        const nextValue = filteredOptions[selectedIndex].label;
+        onChange(nextValue);
+        onSave(nextValue);
       }
     } else if (e.key === 'ArrowDown') {
       e.preventDefault();
@@ -72,12 +73,12 @@ export function SelectEditor({
 
   const handleSelect = (option: SelectOption) => {
     onChange(option.label);
-    onSave();
+    onSave(option.label);
   };
 
   const handleClear = () => {
     onChange('');
-    onSave();
+    onSave('');
   };
 
   return (

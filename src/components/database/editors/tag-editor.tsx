@@ -8,7 +8,7 @@ interface TagEditorProps {
   value: string[];
   availableTags?: string[];
   onChange: (tags: string[]) => void;
-  onSave: () => void;
+  onSave: (tags?: string[]) => void;
   onCancel: () => void;
   autoFocus?: boolean;
   allowCreate?: boolean;
@@ -47,7 +47,7 @@ export function TagEditor({
     const handleClickOutside = (e: MouseEvent) => {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
         onChange(localTags);
-        onSave();
+        onSave(localTags);
       }
     };
 

@@ -6,7 +6,7 @@ import { cn } from '@/lib/utils';
 interface DateEditorProps {
   value: string | null;
   onChange: (value: string | null) => void;
-  onSave: () => void;
+  onSave: (value?: string | null) => void;
   onCancel: () => void;
   includeTime?: boolean;
   autoFocus?: boolean;
@@ -53,17 +53,19 @@ export function DateEditor({
   const handleSave = () => {
     if (localValue) {
       const date = new Date(localValue);
-      onChange(date.toISOString());
+      const nextValue = date.toISOString();
+      onChange(nextValue);
+      onSave(nextValue);
     } else {
       onChange(null);
+      onSave(null);
     }
-    onSave();
   };
 
   const handleClear = () => {
     setLocalValue('');
     onChange(null);
-    onSave();
+    onSave(null);
   };
 
   const handleToday = () => {

@@ -21,7 +21,7 @@ interface EnhancedCellProps {
   isEditing: boolean;
   onEdit: () => void;
   onChange: (value: unknown) => void;
-  onSave: () => void;
+  onSave: (finalValue?: unknown) => void;
   onCancel: () => void;
   users?: User[];
   availableTags?: string[];
