@@ -16,13 +16,20 @@
 # next.js
 /.next/
 /out/
+electron-app/.next/
+electron-app/next-dist/.next/
 
 # production
 /build
+electron-app/dist/
 
 # misc
 .DS_Store
 *.pem
+*.bak
+*.dump
+electron-app/crm@*
+electron-app/crm-electron@*
 
 # debug
 npm-debug.log*

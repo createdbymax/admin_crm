@@ -26,7 +26,7 @@ export default async function AppLayout({
     <div className="min-h-screen overflow-x-hidden">
       <AuditTracker />
       <header className="sticky top-0 z-40 border-b border-white/60 bg-white/70 backdrop-blur">
-        <div className="mx-auto flex w-full max-w-6xl flex-col gap-3 px-4 py-3 sm:px-6 sm:py-4 lg:flex-row lg:items-center lg:justify-between">
+        <div className="mx-auto flex w-full max-w-[1800px] flex-col gap-3 px-4 py-3 sm:px-6 sm:py-4 xl:px-8 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4 lg:gap-6">
             <Link href="/artists" className="flex items-center gap-3">
               <Image
@@ -82,7 +82,7 @@ export default async function AppLayout({
         </div>
       </header>
       <Separator />
-      <main className="mx-auto w-full max-w-6xl overflow-x-hidden px-4 py-6 sm:px-6 sm:py-10">{children}</main>
+      <main className="mx-auto w-full max-w-[1800px] overflow-x-hidden px-4 py-6 sm:px-6 sm:py-10 xl:px-8">{children}</main>
     </div>
   );
 }

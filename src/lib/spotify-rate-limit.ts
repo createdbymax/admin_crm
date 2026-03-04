@@ -1,6 +1,7 @@
 const globalForSpotify = globalThis as unknown as {
   spotifyQueue?: Promise<void>;
   spotifyLastRun?: number;
+  spotifyBlockedUntil?: number;
 };
 
 function sleep(ms: number) {
@@ -8,6 +9,16 @@ function sleep(ms: number) {
 }
 
 export async function withSpotifyRateLimit<T>(task: () => Promise<T>) {
+  const now = Date.now();
+  const blockedUntil = globalForSpotify.spotifyBlockedUntil ?? 0;
+  if (blockedUntil > now) {
+    const remaining = blockedUntil - now;
+    if (remaining > 60000) {
+      throw new Error(`Spotify rate limit: wait ${Math.round(remaining / 1000)}s`);
+    }
+    await sleep(remaining);
+  }
+
   const queue = globalForSpotify.spotifyQueue ?? Promise.resolve();
   const next = queue.then(async () => {
     const now = Date.now();
@@ -23,4 +34,11 @@ export async function withSpotifyRateLimit<T>(task: () => Promise<T>) {
   await next;
 
   return task();
+}
+
+export function setSpotifyRateLimitPause(waitMs: number) {
+  const until = Date.now() + waitMs;
+  if ((globalForSpotify.spotifyBlockedUntil ?? 0) < until) {
+    globalForSpotify.spotifyBlockedUntil = until;
+  }
 }

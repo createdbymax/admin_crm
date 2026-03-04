@@ -4,6 +4,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+  schemas  = ["crm"]
 }
 
 model User {
@@ -22,6 +23,8 @@ model User {
   auditLogs    AuditLog[]
   outboundMessages OutboundMessage[]
   spotifySyncJobs SpotifySyncJob[]
+
+  @@schema("crm")
 }
 
 model Account {
@@ -41,6 +44,8 @@ model Account {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
+
+  @@schema("crm")
 }
 
 model Session {
@@ -50,6 +55,8 @@ model Session {
   expires      DateTime
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@schema("crm")
 }
 
 model VerificationToken {
@@ -58,6 +65,8 @@ model VerificationToken {
   expires    DateTime
 
   @@unique([identifier, token])
+
+  @@schema("crm")
 }
 
 model Artist {
@@ -117,6 +126,8 @@ model Artist {
   @@index([spotifyLatestReleaseDate])
   @@index([createdAt])
   @@index([name])
+
+  @@schema("crm")
 }
 
 model ArtistNote {
@@ -128,6 +139,8 @@ model ArtistNote {
 
   artist Artist @relation(fields: [artistId], references: [id], onDelete: Cascade)
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@schema("crm")
 }
 
 model ArtistActivity {
@@ -140,6 +153,8 @@ model ArtistActivity {
 
   artist Artist @relation(fields: [artistId], references: [id], onDelete: Cascade)
   user   User?  @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@schema("crm")
 }
 
 model ArtistStageHistory {
@@ -152,6 +167,8 @@ model ArtistStageHistory {
 
   artist Artist @relation(fields: [artistId], references: [id], onDelete: Cascade)
   user   User?  @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@schema("crm")
 }
 
 model ArtistRelease {
@@ -169,12 +186,16 @@ model ArtistRelease {
 
   @@index([artistId])
   @@index([releaseDate])
+
+  @@schema("crm")
 }
 
 model Tag {
   id      String   @id @default(cuid())
   name    String   @unique
   artists Artist[]
+
+  @@schema("crm")
 }
 
 model OutboundMessage {
@@ -193,6 +214,8 @@ model OutboundMessage {
 
   @@index([artistId])
   @@index([sentAt])
+
+  @@schema("crm")
 }
 
 model AuditLog {
@@ -213,6 +236,8 @@ model AuditLog {
 
   @@index([createdAt])
   @@index([action])
+
+  @@schema("crm")
 }
 
 enum ArtistStatus {
@@ -221,6 +246,8 @@ enum ArtistStatus {
   NEGOTIATING
   WON
   LOST
+
+  @@schema("crm")
 }
 
 enum SpotifySyncJobStatus {
@@ -228,6 +255,8 @@ enum SpotifySyncJobStatus {
   RUNNING
   COMPLETED
   FAILED
+
+  @@schema("crm")
 }
 
 model SpotifySyncJob {
@@ -245,13 +274,19 @@ model SpotifySyncJob {
   finishedAt    DateTime?
   createdAt     DateTime              @default(now())
   updatedAt     DateTime              @updatedAt
+
+  @@schema("crm")
 }
 
 enum UserRole {
   ADMIN
   MEMBER
+
+  @@schema("crm")
 }
 
 enum OutboundChannel {
   EMAIL
+
+  @@schema("crm")
 }

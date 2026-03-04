@@ -37,21 +37,33 @@ function getRequestDetails(request?: Request) {
 
 export async function logAuditEvent(input: AuditEventInput) {
   const requestDetails = getRequestDetails(input.request);
+  const baseData = {
+    action: input.action,
+    userId: input.userId ?? null,
+    userEmail: input.userEmail ?? null,
+    entityType: input.entityType ?? null,
+    entityId: input.entityId ?? null,
+    metadata: input.metadata ?? Prisma.DbNull,
+    path: input.path ?? requestDetails.path ?? null,
+    method: input.method ?? requestDetails.method ?? null,
+    ip: input.ip ?? requestDetails.ip ?? null,
+    userAgent: input.userAgent ?? requestDetails.userAgent ?? null,
+  };
 
-  return prisma.auditLog.create({
-    data: {
-      action: input.action,
-      userId: input.userId ?? null,
-      userEmail: input.userEmail ?? null,
-      entityType: input.entityType ?? null,
-      entityId: input.entityId ?? null,
-      metadata: input.metadata ?? Prisma.DbNull,
-      path: input.path ?? requestDetails.path ?? null,
-      method: input.method ?? requestDetails.method ?? null,
-      ip: input.ip ?? requestDetails.ip ?? null,
-      userAgent: input.userAgent ?? requestDetails.userAgent ?? null,
-    },
-  });
+  try {
+    return await prisma.auditLog.create({ data: baseData });
+  } catch (error) {
+    if (
+      baseData.userId &&
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2003"
+    ) {
+      return prisma.auditLog.create({
+        data: { ...baseData, userId: null },
+      });
+    }
+    throw error;
+  }
 }
 
 export function truncateAuditValue(value: string | null | undefined, max = 240) {

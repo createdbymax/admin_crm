@@ -1,0 +1,43 @@
+{
+  "name": "crm-electron",
+  "version": "0.1.0",
+  "private": true,
+  "main": "main.js",
+  "scripts": {
+    "dev": "concurrently -k \"pnpm -C .. dev\" \"wait-on http://localhost:3000 && ELECTRON_START_URL=http://localhost:3000 electron .\"",
+    "start": "electron .",
+    "build:web": "pnpm -C .. build",
+    "stage:web": "node scripts/stage-next-standalone.cjs",
+    "dist": "pnpm -C .. build && node scripts/stage-next-standalone.cjs && electron-builder",
+    "dist:mac": "pnpm -C .. build && node scripts/stage-next-standalone.cjs && electron-builder --mac"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2",
+    "electron": "^32.3.1",
+    "electron-builder": "^25.1.8",
+    "@electron/notarize": "^2.3.2",
+    "wait-on": "^7.2.0"
+  },
+  "build": {
+    "appId": "io.losthills.crm",
+    "productName": "Lost Hills CRM",
+    "mac": {
+      "category": "public.app-category.business",
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false,
+      "identity": "Lost Hills LLC (EGEBBVL76D)",
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.plist",
+      "target": [
+        "dmg",
+        "zip"
+      ]
+    },
+    "afterSign": "scripts/notarize.js",
+    "files": [
+      "main.js",
+      "preload.js",
+      "next-dist/**"
+    ]
+  }
+}

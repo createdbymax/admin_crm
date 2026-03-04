@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import type { MouseEvent } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -124,6 +125,17 @@ export function ReleaseCalendar({
               ? dayReleases.length - visibleReleases.length
               : 0;
 
+          const handleCellClick = (event: MouseEvent<HTMLDivElement>) => {
+            if (!onSelectDay || !inMonth || !cellKey) {
+              return;
+            }
+            const target = event.target as HTMLElement;
+            if (target.closest("a, button")) {
+              return;
+            }
+            onSelectDay(cellKey);
+          };
+
           return (
             <div
               key={`day-${index}`}
@@ -133,25 +145,18 @@ export function ReleaseCalendar({
                 isToday && "ring-2 ring-primary/30 ring-inset",
                 isSelected &&
                   "bg-white ring-2 ring-primary/60 ring-inset shadow-[0_15px_40px_-25px_rgba(15,23,42,0.45)]",
+                onSelectDay && inMonth && "cursor-pointer",
               )}
+              onClick={onSelectDay ? handleCellClick : undefined}
             >
-              {inMonth && cellKey ? (
-                onSelectDay ? (
-                  <button
-                    type="button"
-                    onClick={() => onSelectDay(cellKey)}
-                    aria-label={`View releases for ${cellKey}`}
-                    className="absolute inset-0 z-0 cursor-pointer rounded-2xl bg-transparent"
-                  />
-                ) : (
-                  <Link
-                    href={`/calendar?month=${formatMonthParam(
-                      monthDate,
-                    )}&day=${cellKey}`}
-                    aria-label={`View releases for ${cellKey}`}
-                    className="absolute inset-0 z-0"
-                  />
-                )
+              {inMonth && cellKey && !onSelectDay ? (
+                <Link
+                  href={`/calendar?month=${formatMonthParam(
+                    monthDate,
+                  )}&day=${cellKey}`}
+                  aria-label={`View releases for ${cellKey}`}
+                  className="absolute inset-0 z-0"
+                />
               ) : null}
               <div className="relative z-10">
                 <div className="flex items-center justify-between gap-1">

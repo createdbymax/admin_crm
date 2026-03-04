@@ -1,4 +1,4 @@
-import { withSpotifyRateLimit } from "@/lib/spotify-rate-limit";
+import { setSpotifyRateLimitPause, withSpotifyRateLimit } from "@/lib/spotify-rate-limit";
 
 type SpotifyTokenResponse = {
   access_token: string;
@@ -45,16 +45,57 @@ async function spotifyFetch(
   retries = 3,
 ) {
   for (let attempt = 0; attempt <= retries; attempt += 1) {
-    const response = await withSpotifyRateLimit(() => fetch(input, init));
-    if (response.status !== 429) {
-      return response;
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => {
+      console.log(`[Spotify] Aborting request after 10s timeout`);
+      controller.abort();
+    }, 10000); // 10 second timeout
+    
+    try {
+      console.log(`[Spotify] Making request (attempt ${attempt + 1}/${retries + 1})...`);
+      const response = await withSpotifyRateLimit(() => 
+        fetch(input, { ...init, signal: controller.signal })
+      );
+      clearTimeout(timeoutId);
+      
+      console.log(`[Spotify] Got response: ${response.status}`);
+      
+      if (response.status !== 429) {
+        return response;
+      }
+      
+      // Handle rate limiting
+      const retryAfter = Number(response.headers.get("Retry-After"));
+      const waitMs = Number.isFinite(retryAfter) ? retryAfter * 1000 : 1000;
+      setSpotifyRateLimitPause(waitMs);
+      
+      // If rate limit is more than 60 seconds, fail immediately
+      if (waitMs > 60000) {
+        console.error(
+          `[Spotify] Rate limited for ${Math.round(waitMs / 1000)}s - too long, pausing requests`,
+        );
+        throw new Error(`Spotify rate limit: wait ${Math.round(waitMs / 1000)}s`);
+      }
+      
+      if (attempt >= retries) {
+        throw new Error(`Spotify rate limit exceeded after ${retries} retries`);
+      }
+      
+      console.log(`[Spotify] Rate limited, waiting ${waitMs}ms...`);
+      await sleep(waitMs);
+    } catch (error) {
+      clearTimeout(timeoutId);
+      if (error instanceof Error && error.name === 'AbortError') {
+        console.error(`[Spotify] Request timeout on attempt ${attempt + 1}`);
+        if (attempt >= retries) {
+          throw new Error('Spotify API timeout after retries');
+        }
+        await sleep(1000);
+      } else {
+        console.error(`[Spotify] Request error:`, error);
+        throw error;
+      }
     }
-    const retryAfter = Number(response.headers.get("Retry-After"));
-    if (attempt >= retries) {
-      return response;
-    }
-    const waitMs = Number.isFinite(retryAfter) ? retryAfter * 1000 : 1000;
-    await sleep(waitMs);
   }
   throw new Error("Spotify rate limit exceeded.");
 }
@@ -71,10 +112,13 @@ async function getSpotifyAccessToken() {
     return cachedToken;
   }
 
+  console.log('[Spotify] Fetching new access token...');
+  
   const clientId = process.env.SPOTIFY_CLIENT_ID;
   const clientSecret = process.env.SPOTIFY_CLIENT_SECRET;
 
   if (!clientId || !clientSecret) {
+    console.error('[Spotify] Missing credentials! SPOTIFY_CLIENT_ID or SPOTIFY_CLIENT_SECRET not set');
     throw new Error("Missing Spotify credentials.");
   }
 
@@ -93,6 +137,8 @@ async function getSpotifyAccessToken() {
   });
 
   if (!response.ok) {
+    const errorText = await response.text().catch(() => 'Unable to read error');
+    console.error(`[Spotify] Token fetch failed: ${response.status} - ${errorText}`);
     throw new Error("Failed to fetch Spotify access token.");
   }
 
@@ -100,10 +146,14 @@ async function getSpotifyAccessToken() {
   globalForSpotify.spotifyAccessToken = data.access_token;
   const expiresInMs = (data.expires_in ?? 3600) * 1000;
   globalForSpotify.spotifyAccessTokenExpiresAt = Date.now() + expiresInMs;
+  
+  console.log(`[Spotify] ✓ Got new access token, expires in ${data.expires_in}s`);
+  
   return data.access_token;
 }
 
 export async function fetchSpotifyArtist(spotifyId: string) {
+  console.log(`[Spotify] Fetching artist ${spotifyId}...`);
   let token = await getSpotifyAccessToken();
   let response = await spotifyFetch(
     `https://api.spotify.com/v1/artists/${spotifyId}`,
@@ -116,6 +166,7 @@ export async function fetchSpotifyArtist(spotifyId: string) {
   );
 
   if (response.status === 401) {
+    console.log(`[Spotify] Token expired, refreshing...`);
     globalForSpotify.spotifyAccessToken = undefined;
     globalForSpotify.spotifyAccessTokenExpiresAt = undefined;
     token = await getSpotifyAccessToken();
@@ -130,11 +181,17 @@ export async function fetchSpotifyArtist(spotifyId: string) {
     );
   }
 
+  console.log(`[Spotify] Artist response status: ${response.status}`);
+  
   if (!response.ok) {
-    throw new Error("Failed to fetch Spotify artist.");
+    const errorText = await response.text().catch(() => 'Unable to read error');
+    console.error(`[Spotify] Artist fetch failed: ${response.status} - ${errorText}`);
+    throw new Error(`Failed to fetch Spotify artist: ${response.status}`);
   }
 
-  return (await response.json()) as SpotifyArtistResponse;
+  const data = await response.json() as SpotifyArtistResponse;
+  console.log(`[Spotify] ✓ Fetched artist ${spotifyId}: ${data.followers?.total || 0} followers`);
+  return data;
 }
 
 export async function fetchLatestRelease(spotifyId: string) {
@@ -146,6 +203,7 @@ export async function fetchLatestRelease(spotifyId: string) {
 }
 
 export async function fetchArtistReleases(spotifyId: string) {
+  console.log(`[Spotify] Fetching releases for ${spotifyId}...`);
   let token = await getSpotifyAccessToken();
   let response = await spotifyFetch(
     `https://api.spotify.com/v1/artists/${spotifyId}/albums?include_groups=album,single&market=US&limit=50`,
@@ -158,6 +216,7 @@ export async function fetchArtistReleases(spotifyId: string) {
   );
 
   if (response.status === 401) {
+    console.log(`[Spotify] Token expired, refreshing...`);
     globalForSpotify.spotifyAccessToken = undefined;
     globalForSpotify.spotifyAccessTokenExpiresAt = undefined;
     token = await getSpotifyAccessToken();
@@ -172,12 +231,18 @@ export async function fetchArtistReleases(spotifyId: string) {
     );
   }
 
+  console.log(`[Spotify] Releases response status: ${response.status}`);
+
   if (!response.ok) {
-    throw new Error("Failed to fetch Spotify releases.");
+    const errorText = await response.text().catch(() => 'Unable to read error');
+    console.error(`[Spotify] Releases fetch failed: ${response.status} - ${errorText}`);
+    throw new Error(`Failed to fetch Spotify releases: ${response.status}`);
   }
 
   const data = (await response.json()) as { items: SpotifyAlbum[] };
   const releases = data.items ?? [];
+  
+  console.log(`[Spotify] ✓ Fetched ${releases.length} releases for ${spotifyId}`);
 
   if (!releases.length) {
     return [];

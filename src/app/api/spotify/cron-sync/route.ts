@@ -88,12 +88,18 @@ export async function GET(request: Request) {
   // Trigger the first worker execution immediately (fire and forget)
   const baseUrl = process.env.NEXTAUTH_URL || 'https://admin.crm.losthills.io';
   const workerUrl = `${baseUrl}/api/spotify/sync-worker`;
+  const headers: Record<string, string> = {
+    'x-trigger-source': 'cron-sync'
+  };
+  
+  // Add auth header if secret is configured
+  if (process.env.SPOTIFY_SYNC_SECRET) {
+    headers['authorization'] = `Bearer ${process.env.SPOTIFY_SYNC_SECRET}`;
+  }
   
   fetch(workerUrl, {
     method: 'GET',
-    headers: {
-      'x-trigger-source': 'cron-sync'
-    }
+    headers
   }).catch((error) => {
     console.error('Failed to trigger worker:', error);
     // Worker will be triggered by UI polling if this fails

@@ -89,7 +89,10 @@ export async function GET(request: Request) {
       ...(job.cursor ? { cursor: { id: job.cursor }, skip: 1 } : {}),
     });
 
+    console.log(`[Worker] Found ${batch.length} artists to sync for job ${job.id}`);
+
     if (!batch.length) {
+      console.log(`[Worker] No more artists to sync. Marking job as COMPLETED.`);
       const completed = await syncJobClient.update({
         where: { id: job.id },
         data: { status: "COMPLETED", finishedAt: new Date(), cursor: null },
@@ -102,22 +105,42 @@ export async function GET(request: Request) {
     let synced = 0;
     let failed = 0;
     let lastError: string | null = null;
+    let rateLimited = false;
     
-    // Process artists in parallel with rate limiting
-    // Spotify allows ~10-20 requests/second, so we can do batches of 10 in parallel
-    const results = await Promise.allSettled(
-      batch.map(artist => syncArtistById(artist.id))
-    );
+    console.log(`[Worker] Processing ${batch.length} artists sequentially...`);
     
-    results.forEach((result) => {
-      if (result.status === "fulfilled") {
+    // Process artists sequentially to avoid overwhelming Spotify API
+    for (const artist of batch) {
+      try {
+        console.log(`[Worker] Syncing ${artist.name} (${artist.id})...`);
+        
+        // Add timeout to prevent hanging
+        const syncPromise = syncArtistById(artist.id);
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Sync timeout after 30s')), 30000)
+        );
+        
+        await Promise.race([syncPromise, timeoutPromise]);
+        
         synced += 1;
-      } else {
+        console.log(`[Worker] ✓ Synced ${artist.name} (${synced}/${batch.length})`);
+      } catch (error) {
+        const errorMsg = error instanceof Error ? error.message : "Sync failed.";
+        if (errorMsg.startsWith("Spotify rate limit: wait")) {
+          rateLimited = true;
+          lastError = errorMsg;
+          console.error(
+            `[Worker] Rate limited while syncing ${artist.name}: ${errorMsg}`,
+          );
+          break;
+        }
         failed += 1;
-        lastError = result.reason instanceof Error ? result.reason.message : "Sync failed.";
-        console.error(result.reason);
+        lastError = errorMsg;
+        console.error(`[Worker] ✗ Failed to sync ${artist.name}: ${errorMsg}`);
       }
-    });
+    }
+
+    console.log(`[Worker] Batch complete. Synced: ${synced}, Failed: ${failed}`);
 
     const nextCursor = batch[batch.length - 1]?.id ?? job.cursor;
     const updated = await syncJobClient.update({
@@ -130,21 +153,46 @@ export async function GET(request: Request) {
       },
     });
 
+    console.log(`[Worker] Job updated. Total synced: ${updated.synced}, Total failed: ${updated.failed}, Total: ${updated.total}`);
+
     // Trigger next batch immediately if there's more work to do
-    const hasMoreWork = updated.synced < (updated.total ?? 0);
-    if (hasMoreWork) {
+    const processed = updated.synced + updated.failed;
+    const hasMoreWork = processed < (updated.total ?? 0);
+    
+    console.log(`[Worker] Batch complete. Processed: ${processed}/${updated.total}, Has more work: ${hasMoreWork}`);
+    
+    if (hasMoreWork && !rateLimited) {
       const baseUrl = process.env.NEXTAUTH_URL || 'https://admin.crm.losthills.io';
       const workerUrl = `${baseUrl}/api/spotify/sync-worker`;
+      const headers: Record<string, string> = {
+        'x-trigger-source': 'self-chain'
+      };
+      
+      // Add auth header if secret is configured
+      if (process.env.SPOTIFY_SYNC_SECRET) {
+        headers['authorization'] = `Bearer ${process.env.SPOTIFY_SYNC_SECRET}`;
+      }
+      
+      console.log(`[Worker] Triggering next batch. URL: ${workerUrl}`);
       
       fetch(workerUrl, {
         method: 'GET',
-        headers: {
-          'x-trigger-source': 'self-chain'
-        }
+        headers
       }).catch((error) => {
-        console.error('Failed to chain worker:', error);
+        console.error('[Worker] Failed to chain worker:', error);
         // Will be picked up by UI polling
       });
+    } else if (!rateLimited) {
+      // Mark job as completed when all work is done
+      console.log(`[Worker] All work complete. Marking job as COMPLETED.`);
+      await syncJobClient.update({
+        where: { id: job.id },
+        data: { status: "COMPLETED", finishedAt: new Date(), cursor: null },
+      });
+    } else {
+      console.log(
+        `[Worker] Pausing job ${job.id} due to rate limit. Not chaining next batch.`,
+      );
     }
 
     return NextResponse.json({
